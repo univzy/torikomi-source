@@ -1,0 +1,2 @@
+-keep class com.tobz.aio_extension_facebook.** { *; }
+-keep interface com.tobz.aio.extension.** { *; }

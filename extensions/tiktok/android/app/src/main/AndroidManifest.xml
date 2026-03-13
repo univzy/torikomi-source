@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:label="AIO: TikTok">
+
+        <!-- Silent activity required by Flutter engine -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <!-- IPC entry-point for the main app -->
+        <provider
+            android:name=".ExtensionProvider"
+            android:authorities="aio.extension.tiktok"
+            android:exported="true"
+            android:readPermission="com.tobz.aiodownloader.READ_EXTENSION" />
+
+        <!-- Discovery marker -->
+        <meta-data android:name="aio.extension"         android:value="true" />
+        <meta-data android:name="aio.extension.id"      android:value="tiktok" />
+        <meta-data android:name="aio.extension.platform" android:value="TikTok" />
+        <meta-data android:name="aio.extension.version" android:value="1.0.0" />
+        <meta-data android:name="aio.extension.lang"    android:value="multi" />
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+
+</manifest>
+

@@ -1,0 +1,2 @@
+-keep class com.tobz.aio_extension_threads.** { *; }
+-keep interface com.tobz.aio.extension.** { *; }

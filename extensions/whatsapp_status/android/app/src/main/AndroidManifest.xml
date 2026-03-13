@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- READ_EXTERNAL_STORAGE for Android < 13 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- READ_MEDIA_IMAGES + READ_MEDIA_VIDEO for Android 13+ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+
+    <application android:label="AIO: WhatsApp Status">
+        <activity android:name=".MainActivity" android:exported="false" android:theme="@android:style/Theme.NoDisplay" />
+        <provider android:name=".ExtensionProvider" android:authorities="aio.extension.whatsapp_status" android:exported="true" android:readPermission="com.tobz.aiodownloader.READ_EXTENSION" />
+        <meta-data android:name="aio.extension"          android:value="true" />
+        <meta-data android:name="aio.extension.id"       android:value="whatsapp_status" />
+        <meta-data android:name="aio.extension.platform" android:value="WhatsApp Status" />
+        <meta-data android:name="aio.extension.version"  android:value="1.0.0" />
+        <meta-data android:name="aio.extension.lang"     android:value="multi" />
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+</manifest>
+

@@ -1,0 +1,2 @@
+-keep class com.tobz.aio_extension_tiktok.** { *; }
+-keep interface com.tobz.aio.extension.** { *; }

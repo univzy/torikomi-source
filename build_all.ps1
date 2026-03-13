@@ -23,7 +23,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 # ── Reference project (used to copy gradle wrapper binaries) ─────────────────
-$ReferenceAndroid = Join-Path $PSScriptRoot "..\AIO-Downloader-Dart\android"
+$ReferenceAndroid = Join-Path $PSScriptRoot "..\Torikomi-Dart\android"
 
 # ── Bootstrap a minimal v2-embedding Android project structure ───────────────
 function Initialize-AndroidProject {
@@ -225,7 +225,7 @@ foreach ($ext in $AllExtensions) {
         $rootGradlew = Join-Path $PSScriptRoot "gradlew.bat"
         
         if (-not (Test-Path $rootGradlew)) {
-            throw "Gradle wrapper not found at $rootGradlew. Copy from AIO-Downloader-Dart/android/."
+            throw "Gradle wrapper not found at $rootGradlew. Copy from Torikomi-Dart/android/."
         }
         
         # Build from root, specifying the extension module

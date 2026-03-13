@@ -1,14 +1,14 @@
 # AIO Extension Source
 
 Source code for all AIO Downloader extension APKs.
-Each extension is a standalone Flutter/Android project that exposes a `ContentProvider` IPC interface for the main [AIO Downloader](https://github.com/TobyG74/AIO-Downloader-Dart) app.
+Each extension is a standalone Flutter/Android project that exposes a `ContentProvider` IPC interface for the main [AIO Downloader](https://github.com/univzy/torikomi-dev-Dart) app.
 
 This repository is the **build source** — compiled APKs and the catalog index live in the separate [torikomi-extensions](https://github.com/univzy/torikomi-extensions) repository.
 
 ## Architecture
 
 ```
-AIO-Downloader-Dart  ←→  Extension APK
+Torikomi-Dart  ←→  Extension APK
         │                     │
   ExtensionBridge.dart   ContentProvider
   (MethodChannel)         authority:

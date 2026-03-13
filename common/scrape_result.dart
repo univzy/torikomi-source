@@ -1,5 +1,5 @@
 /// Shared data contract between the main app and all extension APKs.
-/// Keep in sync with lib/models/scrape_result.dart in AIO-Downloader-Dart.
+/// Keep in sync with lib/models/scrape_result.dart in Torikomi-Dart.
 library;
 
 class DownloadItem {

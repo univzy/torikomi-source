@@ -1,0 +1,2 @@
+-keep class com.torikomi.extension_musicaldown.** { *; }
+-keep interface com.torikomi.extension.** { *; }

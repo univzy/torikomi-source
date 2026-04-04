@@ -14,18 +14,14 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "torikomi-extensionss"
+rootProject.name = "torikomi-extensions"
 
-include(":extension-framework")
-project(":extension-framework").projectDir = file("extension-framework")
-
-// Include all 12 extensions
+// Include available extension modules
 val extensionIds = listOf(
-    "tiktok", "youtube", "instagram", "facebook", "twitter", "threads",
-    "pinterest", "spotify", "soundcloud", "douyin", "bilibili", "whatsapp_status"
+    "musicaldown"
 )
 
 extensionIds.forEach { id ->
     include(":extensions:$id")
-    project(":extensions:$id").projectDir = file("extensions/$id")
+    project(":extensions:$id").projectDir = file("extensions/$id/android/app")
 }

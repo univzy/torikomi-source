@@ -1,2 +1,0 @@
--keep class com.tobz.aio_extension_whatsapp_status.** { *; }
--keep interface com.tobz.aio.extension.** { *; }

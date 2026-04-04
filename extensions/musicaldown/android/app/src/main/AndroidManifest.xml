@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:icon="@drawable/icon_musicaldown"
+        android:label="Torikomi: TikTok">
+
+        <!-- Silent activity required by Flutter engine -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <!-- IPC entry-point for the main app -->
+        <provider
+            android:name=".ExtensionProvider"
+            android:authorities="torikomi.extension.musicaldown"
+            android:exported="true"
+            android:readPermission="com.torikomi.downloader.READ_EXTENSION" />
+
+        <!-- Discovery marker -->
+        <meta-data android:name="torikomi.extension"         android:value="true" />
+        <meta-data android:name="torikomi.extension.id"      android:value="musicaldown" />
+        <meta-data android:name="torikomi.extension.platform" android:value="tiktok" />
+        <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
+        <meta-data android:name="torikomi.extension.lang"    android:value="multi" />
+        <meta-data android:name="torikomi.extension.icon"    android:value="musicaldown" />
+        <meta-data android:name="torikomi.extension.color"   android:value="#000000" />
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+
+</manifest>
+

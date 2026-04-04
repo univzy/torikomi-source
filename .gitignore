@@ -1,10 +1,7 @@
-# Gradle
 .gradle/
 build/
 *.gradle.kts.bak
 .kotlin/
-
-# Extension build artifacts
 **/extensions/*/.gradle/
 **/extensions/*/build/
 **/extensions/*/.kotlin/
@@ -12,11 +9,7 @@ build/
 **/extensions/*/*.aab
 **/extensions/*/.cxx/
 **/.cxx/
-
-# Local properties
 local.properties
-
-# IDE
 .idea/
 *.iml
 *.iws
@@ -24,19 +17,13 @@ local.properties
 .vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Build artifacts
 *.apk
 *.aab
 *.dex
 dist/
 out/
-
-# Generated files
 bin/
 gen/
 .settings/

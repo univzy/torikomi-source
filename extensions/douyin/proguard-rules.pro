@@ -1,2 +1,0 @@
--keep class com.tobz.aio_extension_douyin.** { *; }
--keep interface com.tobz.aio.extension.** { *; }

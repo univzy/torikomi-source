@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Build all AIO Kotlin extensions to minimal APKs (~500KB-1MB each).
+    Build all Torikomi Kotlin extensions to minimal APKs (~500KB-1MB each).
     
     Kotlin extensions (not Flutter) = pure Java/Kotlin code compiled to DEX.
     Result: 500KB-1MB per extension (vs 16-20MB for Flutter).
@@ -13,7 +13,7 @@
 
 .EXAMPLE
     .\build_all.ps1
-    .\build_all.ps1 -Extensions "tiktok,youtube"
+    .\build_all.ps1 -Extensions "musicaldown"
 #>
 param(
     [string]$CatalogPath = "",
@@ -22,10 +22,33 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# ── Reference project (used to copy gradle wrapper binaries) ─────────────────
-$ReferenceAndroid = Join-Path $PSScriptRoot "..\Torikomi-Dart\android"
+# ── Ensure Android SDK location for Gradle builds ───────────────────────────
+function Ensure-LocalProperties {
+    param([string]$ProjectRoot)
 
-# ── Bootstrap a minimal v2-embedding Android project structure ───────────────
+    $localProps = Join-Path $ProjectRoot "local.properties"
+    if (Test-Path $localProps) {
+        return
+    }
+
+    $sdkPath = $env:ANDROID_SDK_ROOT
+    if ([string]::IsNullOrWhiteSpace($sdkPath)) {
+        $sdkPath = $env:ANDROID_HOME
+    }
+
+    if ([string]::IsNullOrWhiteSpace($sdkPath) -or -not (Test-Path $sdkPath)) {
+        throw "Android SDK not found. Set ANDROID_SDK_ROOT/ANDROID_HOME or create $localProps with sdk.dir=<path>."
+    }
+
+    $escaped = $sdkPath -replace '\\', '\\\\'
+    Set-Content -Path $localProps -Encoding UTF8 -Value "sdk.dir=$escaped"
+    Write-Host "[bootstrap] Created local.properties with sdk.dir"
+}
+
+# ── Reference project (used to copy gradle wrapper binaries) ─────────────────
+$ReferenceAndroid = Join-Path $PSScriptRoot "..\torikomi-kotlin"
+
+# ── Bootstrap a minimal Android project structure (Kotlin only) ──────────────
 function Initialize-AndroidProject {
     param([string]$AndroidDir)
 
@@ -38,14 +61,6 @@ function Initialize-AndroidProject {
     if (-not (Test-Path $settingsFile)) {
         Set-Content -Path $settingsFile -Encoding UTF8 -Value @'
 pluginManagement {
-    val flutterSdkPath = run {
-        val properties = java.util.Properties()
-        file("local.properties").inputStream().use { properties.load(it) }
-        val flutterSdkPath = properties.getProperty("flutter.sdk")
-        require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
-        flutterSdkPath
-    }
-    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
     repositories {
         google()
         mavenCentral()
@@ -54,7 +69,6 @@ pluginManagement {
 }
 
 plugins {
-    id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "8.7.3" apply false
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
@@ -65,10 +79,12 @@ include(":app")
     }
     if (Test-Path $settingsFile) {
         $settingsRaw = Get-Content $settingsFile -Raw
-        $settingsNormalized = $settingsRaw -replace 'id\("org\.jetbrains\.kotlin\.android"\) version "1\.9\.25" apply false', 'id("org.jetbrains.kotlin.android") version "2.1.0" apply false'
+        $settingsNormalized = $settingsRaw
+        $settingsNormalized = $settingsNormalized -replace 'id\("dev\.flutter\.flutter-plugin-loader"\) version "1\.0\.0"\s*', ''
+        $settingsNormalized = $settingsNormalized -replace 'id\("org\.jetbrains\.kotlin\.android"\) version "1\.9\.25" apply false', 'id("org.jetbrains.kotlin.android") version "2.1.0" apply false'
         if ($settingsNormalized -ne $settingsRaw) {
             Set-Content -Path $settingsFile -Encoding UTF8 -Value $settingsNormalized
-            Write-Host "    [bootstrap] Normalized Kotlin plugin version"
+            Write-Host "    [bootstrap] Normalized settings.gradle.kts"
         }
     }
 
@@ -175,18 +191,7 @@ zipStorePath=wrapper/dists
 
 # ── Extension manifest ───────────────────────────────────────────────────────
 $AllExtensions = @(
-    @{ id = "tiktok";           lang = "multi"; version = "1.0.0" },
-    @{ id = "youtube";          lang = "multi"; version = "1.0.0" },
-    @{ id = "instagram";        lang = "multi"; version = "1.0.0" },
-    @{ id = "facebook";         lang = "multi"; version = "1.0.0" },
-    @{ id = "twitter";          lang = "multi"; version = "1.0.0" },
-    @{ id = "threads";          lang = "multi"; version = "1.0.0" },
-    @{ id = "pinterest";        lang = "multi"; version = "1.0.0" },
-    @{ id = "spotify";          lang = "multi"; version = "1.0.0" },
-    @{ id = "soundcloud";       lang = "multi"; version = "1.0.0" },
-    @{ id = "douyin";           lang = "zh";    version = "1.0.0" },
-    @{ id = "bilibili";         lang = "zh";    version = "1.0.0" },
-    @{ id = "whatsapp_status";  lang = "multi"; version = "1.0.0" }
+    @{ id = "musicaldown"; lang = "multi"; version = "1.0.0" }
 )
 
 # ── Filter by requested extensions ───────────────────────────────────────────
@@ -201,6 +206,8 @@ $CatalogApkDir = Join-Path $CatalogRoot "apk"
 if (-not (Test-Path $CatalogApkDir)) {
     New-Item -ItemType Directory -Path $CatalogApkDir | Out-Null
 }
+
+Ensure-LocalProperties -ProjectRoot $PSScriptRoot
 
 # ── Build loop ────────────────────────────────────────────────────────────────
 $Success = @()
@@ -221,11 +228,11 @@ foreach ($ext in $AllExtensions) {
     }
 
     try {
-        # Build using root-level Gradle wrapper from AIO-Source
+        # Build using root-level Gradle wrapper from Torikomi-Source
         $rootGradlew = Join-Path $PSScriptRoot "gradlew.bat"
         
         if (-not (Test-Path $rootGradlew)) {
-            throw "Gradle wrapper not found at $rootGradlew. Copy from Torikomi-Dart/android/."
+            throw "Gradle wrapper not found at $rootGradlew. Copy from torikomi-kotlin/."
         }
         
         # Build from root, specifying the extension module
@@ -239,6 +246,7 @@ foreach ($ext in $AllExtensions) {
 
         # Find generated APK (look in extension's build output)
         $outputDirs = @(
+            (Join-Path $extDir "android\app\build\outputs\apk\release"),
             (Join-Path $extDir "app\build\outputs\apk\release"),
             (Join-Path $extDir "build\outputs\apk\release")
         ) | Where-Object { Test-Path $_ }
@@ -265,7 +273,7 @@ foreach ($ext in $AllExtensions) {
         $apkSize = [math]::Round((Get-Item $src).Length / 1KB, 2)
         Write-Host "  Built: $(Split-Path $src -Leaf) ($apkSize KB)" -ForegroundColor Green
 
-        $apkName = "aio-$lang.$id-v$version.apk"
+        $apkName = "torikomi-$lang.$id-v$version.apk"
 
         $dst = Join-Path $CatalogApkDir $apkName
         Copy-Item -Path $src -Destination $dst -Force

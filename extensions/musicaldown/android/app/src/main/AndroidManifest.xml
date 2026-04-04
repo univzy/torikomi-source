@@ -17,8 +17,7 @@
         <provider
             android:name=".ExtensionProvider"
             android:authorities="torikomi.extension.musicaldown"
-            android:exported="true"
-            android:readPermission="com.torikomi.downloader.READ_EXTENSION" />
+            android:exported="true" />
 
         <!-- Discovery marker -->
         <meta-data android:name="torikomi.extension"         android:value="true" />

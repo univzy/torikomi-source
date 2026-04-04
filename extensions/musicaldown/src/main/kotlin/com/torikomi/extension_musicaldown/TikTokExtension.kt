@@ -109,33 +109,6 @@ class TikTokExtension : IExtension {
         val resultHtml = postResp.body?.string().orEmpty()
         val resultDoc = Jsoup.parse(resultHtml)
 
-        val images = resultDoc
-            .select("div.row > div.col.s12.m3")
-            .mapNotNull { it.selectFirst("img")?.attr("src")?.trim() }
-            .filter { it.isNotEmpty() }
-
-        if (images.isNotEmpty()) {
-            return gson.toJson(
-                mapOf(
-                    "title" to "",
-                    "author" to "",
-                    "authorName" to "",
-                    "duration" to 0,
-                    "cover" to "",
-                    "videoUrl" to "",
-                    "videoUrlHD" to "",
-                    "videoUrlWatermark" to "",
-                    "music" to "",
-                    "playCount" to 0,
-                    "diggCount" to 0,
-                    "commentCount" to 0,
-                    "shareCount" to 0,
-                    "downloadCount" to 0,
-                    "images" to images
-                )
-            )
-        }
-
         val videos = mutableMapOf<String, String>()
         val videoContainer = resultDoc.select("div.row > div")
         if (videoContainer.size > 1) {
@@ -154,21 +127,79 @@ class TikTokExtension : IExtension {
             }
         }
 
+        val images = resultDoc
+            .select("div.row > div.col.s12.m3")
+            .mapNotNull { it.selectFirst("img")?.attr("src")?.trim() }
+            .filter { it.isNotEmpty() }
+
+        if (images.isNotEmpty()) {
+            val audioUrl = videos["music"].orEmpty()
+            val imageItems = if (audioUrl.isNotBlank()) {
+                listOf(
+                    mapOf(
+                        "key" to "audio",
+                        "label" to "Audio",
+                        "type" to "audio",
+                        "url" to audioUrl,
+                        "mimeType" to "audio/mpeg",
+                        "quality" to ""
+                    )
+                )
+            } else {
+                emptyList()
+            }
+            return gson.toJson(
+                mapOf(
+                    "extensionId" to "musicaldown",
+                    "platform" to "tiktok",
+                    "title" to "",
+                    "author" to "",
+                    "authorName" to "",
+                    "duration" to 0,
+                    "thumbnail" to "",
+                    "downloadItems" to imageItems,
+                    "playCount" to 0,
+                    "diggCount" to 0,
+                    "commentCount" to 0,
+                    "shareCount" to 0,
+                    "downloadCount" to 0,
+                    "images" to images
+                )
+            )
+        }
+
         val avatar = resultDoc.selectFirst("div.img-area > img")?.attr("src").orEmpty()
         val nickname = resultDoc.selectFirst("h2.video-author > b")?.text().orEmpty()
         val desc = resultDoc.selectFirst("p.video-desc")?.text().orEmpty()
 
+        val downloadItems = mutableListOf<Map<String, String>>()
+        fun addItem(key: String, label: String, type: String, url: String, mimeType: String, quality: String = "") {
+            if (url.isBlank()) return
+            downloadItems += mapOf(
+                "key" to key,
+                "label" to label,
+                "type" to type,
+                "url" to url,
+                "mimeType" to mimeType,
+                "quality" to quality
+            )
+        }
+
+        addItem("video", "Video", "video", videos["videoSD"].orEmpty(), "video/mp4")
+        addItem("video_hd", "Video HD", "video", videos["videoHD"].orEmpty(), "video/mp4", "HD")
+        addItem("video_watermark", "Video Watermark", "video", videos["videoWatermark"].orEmpty(), "video/mp4", "Watermark")
+        addItem("audio", "Audio", "audio", videos["music"].orEmpty(), "audio/mpeg")
+
         return gson.toJson(
             mapOf(
+                "extensionId" to "musicaldown",
+                "platform" to "tiktok",
                 "title" to desc,
                 "author" to "",
                 "authorName" to nickname,
                 "duration" to 0,
-                "cover" to avatar,
-                "videoUrl" to (videos["videoSD"] ?: videos["videoHD"] ?: ""),
-                "videoUrlHD" to (videos["videoHD"] ?: ""),
-                "videoUrlWatermark" to (videos["videoWatermark"] ?: ""),
-                "music" to (videos["music"] ?: ""),
+                "thumbnail" to avatar,
+                "downloadItems" to downloadItems,
                 "playCount" to 0,
                 "diggCount" to 0,
                 "commentCount" to 0,

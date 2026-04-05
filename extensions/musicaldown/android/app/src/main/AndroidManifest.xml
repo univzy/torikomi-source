@@ -16,12 +16,12 @@
         <!-- IPC entry-point for the main app -->
         <provider
             android:name=".ExtensionProvider"
-            android:authorities="torikomi.extension.musicaldown"
+            android:authorities="torikomi.extension.tiktok"
             android:exported="true" />
 
         <!-- Discovery marker -->
         <meta-data android:name="torikomi.extension"         android:value="true" />
-        <meta-data android:name="torikomi.extension.id"      android:value="musicaldown" />
+        <meta-data android:name="torikomi.extension.id"      android:value="tiktok" />
         <meta-data android:name="torikomi.extension.platform" android:value="tiktok" />
         <meta-data android:name="torikomi.extension.platformName" android:value="TikTok" />
         <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />

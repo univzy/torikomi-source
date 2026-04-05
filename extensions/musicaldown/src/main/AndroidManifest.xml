@@ -12,8 +12,8 @@
 
         <!-- Extension metadata for discovery -->
         <meta-data android:name="torikomi.extension" android:value="true" />
-        <meta-data android:name="torikomi.extension.id" android:value="musicaldown" />
-        <meta-data android:name="torikomi.extension.platform" android:value="musicaldown" />
+        <meta-data android:name="torikomi.extension.id" android:value="tiktok" />
+        <meta-data android:name="torikomi.extension.platform" android:value="tiktok" />
         <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
         <meta-data android:name="torikomi.extension.lang" android:value="multi" />
     </application>

@@ -26,7 +26,7 @@ class TwitterExtension : IExtension {
     private val gson = Gson()
     private val apiBase = "https://twitterdownloader.snapsave.app"
 
-    override fun getId(): String = "snapsave_twitter"
+    override fun getId(): String = "twitter"
 
     override fun getPlatformId(): String = "twitter"
 
@@ -171,7 +171,7 @@ class TwitterExtension : IExtension {
 
         return gson.toJson(
             mapOf(
-                "extensionId" to "snapsave_twitter",
+                "extensionId" to "twitter",
                 "platform" to "twitter",
                 "platformName" to getPlatformName(),
                 "version" to getVersion(),

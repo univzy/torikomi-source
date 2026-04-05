@@ -27,7 +27,7 @@ class TikTokExtension : IExtension {
     private val musicalDownUrl = "https://musicaldown.com"
     private val musicalDownApi = "https://musicaldown.com/download"
 
-    override fun getId(): String = "musicaldown"
+    override fun getId(): String = "tiktok"
 
     override fun getPlatformId(): String = "tiktok"
 
@@ -153,7 +153,7 @@ class TikTokExtension : IExtension {
             }
             return gson.toJson(
                 mapOf(
-                    "extensionId" to "musicaldown",
+                    "extensionId" to "tiktok",
                     "platform" to "tiktok",
                     "platformName" to getPlatformName(),
                     "version" to getVersion(),
@@ -199,7 +199,7 @@ class TikTokExtension : IExtension {
 
         return gson.toJson(
             mapOf(
-                "extensionId" to "musicaldown",
+                "extensionId" to "tiktok",
                 "platform" to "tiktok",
                 "platformName" to getPlatformName(),
                 "version" to getVersion(),

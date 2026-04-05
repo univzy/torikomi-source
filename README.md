@@ -1,90 +1,67 @@
 # Torikomi Extension Source
 
-Source code for all Torikomi extension APKs.
-Each extension is a standalone Kotlin/Android project that exposes a `ContentProvider` IPC interface for the main app.
+Source code and build system for Torikomi extension APKs.
 
-This repository is the **build source** — compiled APKs and the catalog index live in the separate [torikomi-extensions](https://github.com/univzy/torikomi-extensions) repository.
+This repository is the build source. Published APK files and catalog entries are stored in `torikomi-extensions`.
 
 ## Architecture
 
-```
-Torikomi App  <->  Extension APK
-    |                  |
- PackageManager     ContentProvider
-               authority:
-               torikomi.extension.<id>
-               /scrape?url=...
+Each extension is an Android app module that exposes scraping via `ContentProvider` IPC.
+
+```text
+Torikomi App -> content://torikomi.extension.<id>/scrape?url=...
 ```
 
 Workflow:
-1. Main app discovers installed extensions via `PackageManager` meta-data (`torikomi.extension = "true"`).
-2. Main app calls `ContentProvider` with target URL.
-3. Extension runs its scraper, returns `ScrapeResult` JSON.
-4. Main app deserializes result and presents download options.
+1. App discovers extension package by manifest metadata.
+2. App invokes the extension provider with URL and optional cookies.
+3. Extension scraper returns JSON payload.
+4. App parses payload into download options.
 
-## Extensions
+## Active Modules
 
-| ID | Platform | Lang | Package |
-|----|----------|------|---------|
-| `tiktok` | TikTok | multi | `com.torikomi.extension_musicaldown` |
-| `youtube` | YouTube | multi | `com.torikomi.extension_youtube` |
-| `instagram` | Instagram | multi | `com.torikomi.extension_instagram` |
-| `facebook` | Facebook | multi | `com.torikomi.extension_facebook` |
-| `snapsave_twitter` | Twitter | multi | `com.torikomi.extension_snapsave_twitter` |
-| `threads` | Threads | multi | `com.torikomi.extension_threads` |
-| `pinterest` | Pinterest | multi | `com.torikomi.extension_pinterest` |
-| `spotify` | Spotify | multi | `com.torikomi.extension_spotify` |
-| `soundcloud` | SoundCloud | multi | `com.torikomi.extension_soundcloud` |
-| `douyin` | Douyin | zh | `com.torikomi.extension_douyin` |
-| `bilibili` | Bilibili | zh | `com.torikomi.extension_bilibili` |
-| `whatsapp_status` | WhatsApp Status | multi | `com.torikomi.extension_whatsapp_status` |
+| Module ID | Platform | Package |
+|---|---|---|
+| `musicaldown` | TikTok | `com.torikomi.extension_musicaldown` |
+| `snapsave_twitter` | Twitter/X | `com.torikomi.extension_snapsave_twitter` |
 
-## Building
+## Build
 
-### Prerequisites
-- Flutter SDK ≥ 3.22
-- Android SDK with build-tools 34+
-- `keytool` and `apksigner` on PATH (or use Android Studio)
+Requirements:
+- Android SDK installed
+- JDK 11+
+- Gradle wrapper files present
 
-### Build a single extension
-```powershell
-cd extensions\tiktok
-flutter build apk --release
-# Output: build\app\outputs\flutter-apk\app-release.apk
-```
+Build all extension modules:
 
-### Build all extensions + copy to torikomi-extensions catalog
 ```powershell
 .\build_all.ps1 -CatalogPath "..\torikomi-extensions"
 ```
 
-The script builds every extension, renames the APK to the catalog naming convention (`torikomi-{lang}.{id}-v{version}.apk`), and copies it to `torikomi-extensions/apk/`.
+Build one module directly:
 
-## Project structure
-
-```
-torikomi-extensions-Source/
-├── build_all.ps1              # Builds all extensions
-├── common/
-│   └── ScrapeResult.kt        # Shared data contract (mirrors main app)
-└── extensions/
-    ├── tiktok/                # Kotlin project
-    │   └── android/
-    │       └── app/
-    │           ├── build.gradle
-    │           └── src/main/
-    │               ├── AndroidManifest.xml
-    │               └── kotlin/com/torikomi/extension_musicaldown/
-    │                   ├── ExtensionProvider.kt
-    │                   └── MainActivity.kt
-    └── ... (same structure for each extension)
+```powershell
+.\gradlew.bat :extensions:musicaldown:assembleRelease
+.\gradlew.bat :extensions:snapsave_twitter:assembleRelease
 ```
 
-## Adding a new extension
+## Repository Layout
 
-1. Copy an existing extension folder as template.
-2. Replace all occurrences of the old `id`/`package` with the new one.
-3. Implement `{Platform}Extension.kt` returning a `ScrapeResult` JSON string.
-4. Add an entry to `torikomi-extensions/index.json` and `index.min.json`.
-5. Run `build_all.ps1` and upload the new APK.
-"# torikomi-source" 
+```text
+torikomi-source/
+|-- build_all.ps1
+|-- settings.gradle.kts
+|-- common/
+|   `-- kotlin/com/torikomi/extension/IExtension.kt
+`-- extensions/
+    |-- musicaldown/
+    `-- snapsave_twitter/
+```
+
+## Adding a New Extension
+
+1. Copy existing module under `extensions/` as template.
+2. Update package, application ID, authority, and metadata.
+3. Implement scraper logic in `src/main/kotlin`.
+4. Register module ID in `settings.gradle.kts` and `build_all.ps1`.
+5. Build release APK and publish it to `torikomi-extensions/apk/`.

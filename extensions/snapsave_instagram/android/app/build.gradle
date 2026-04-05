@@ -1,0 +1,45 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+}
+
+android {
+    namespace "com.torikomi.extension_snapsave_instagram"
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.torikomi.extension_snapsave_instagram"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+}
+
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+android {
+    sourceSets {
+        main.java.srcDirs += ["../../src/main/kotlin", "../../../../common/kotlin"]
+    }
+}
+dependencies {
+    implementation "com.squareup.okhttp3:okhttp:4.11.0"
+    implementation "com.google.code.gson:gson:2.10.1"
+    implementation "org.jsoup:jsoup:1.18.1"
+}

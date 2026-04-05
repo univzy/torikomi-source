@@ -19,7 +19,8 @@ rootProject.name = "torikomi-extensions"
 // Include available extension modules
 val extensionIds = listOf(
     "musicaldown",
-    "snapsave_twitter"
+    "snapsave_twitter",
+    "snapsave_instagram"
 )
 
 extensionIds.forEach { id ->

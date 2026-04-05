@@ -1,0 +1,2 @@
+-keep class com.torikomi.extension_snapsave_twitter.** { *; }
+-keep interface com.torikomi.extension.** { *; }

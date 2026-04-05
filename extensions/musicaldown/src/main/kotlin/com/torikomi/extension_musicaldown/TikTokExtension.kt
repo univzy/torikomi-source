@@ -37,6 +37,9 @@ class TikTokExtension : IExtension {
 
     override fun getDownloaderName(): String = "MusicalDown"
 
+    override fun getDownloaderDescription(): String =
+        "Downloader MusicalDown untuk konten TikTok (video, audio, dan gambar)."
+
     override fun canHandle(url: String): Boolean {
         return url.contains("tiktok.com") || url.contains("vm.tiktok.com") || url.contains("vt.tiktok.com")
     }
@@ -152,6 +155,10 @@ class TikTokExtension : IExtension {
                 mapOf(
                     "extensionId" to "musicaldown",
                     "platform" to "tiktok",
+                    "platformName" to getPlatformName(),
+                    "version" to getVersion(),
+                    "downloaderName" to getDownloaderName(),
+                    "description" to getDownloaderDescription(),
                     "title" to "",
                     "author" to "",
                     "authorName" to "",
@@ -194,6 +201,10 @@ class TikTokExtension : IExtension {
             mapOf(
                 "extensionId" to "musicaldown",
                 "platform" to "tiktok",
+                "platformName" to getPlatformName(),
+                "version" to getVersion(),
+                "downloaderName" to getDownloaderName(),
+                "description" to getDownloaderDescription(),
                 "title" to desc,
                 "author" to "",
                 "authorName" to nickname,

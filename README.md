@@ -30,7 +30,7 @@ Workflow:
 | `youtube` | YouTube | multi | `com.torikomi.extension_youtube` |
 | `instagram` | Instagram | multi | `com.torikomi.extension_instagram` |
 | `facebook` | Facebook | multi | `com.torikomi.extension_facebook` |
-| `twitter` | Twitter | multi | `com.torikomi.extension_twitter` |
+| `snapsave_twitter` | Twitter | multi | `com.torikomi.extension_snapsave_twitter` |
 | `threads` | Threads | multi | `com.torikomi.extension_threads` |
 | `pinterest` | Pinterest | multi | `com.torikomi.extension_pinterest` |
 | `spotify` | Spotify | multi | `com.torikomi.extension_spotify` |

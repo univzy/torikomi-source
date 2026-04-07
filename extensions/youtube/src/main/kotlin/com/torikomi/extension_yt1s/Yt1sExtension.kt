@@ -1,6 +1,7 @@
-package com.torikomi.extension_youtube
+package com.torikomi.extension_yt1s
 
 import android.content.Context
+import android.util.Base64
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -10,19 +11,26 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
-class YouTubeExtension : IExtension {
+class Yt1sExtension : IExtension {
     companion object {
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
-        private const val BASE_URL = "https://embed.dlsrv.online"
-        private const val INFO_API_URL = "$BASE_URL/api/info"
-        private const val VIDEO_API_URL = "$BASE_URL/api/download/mp4"
-        private const val AUDIO_API_URL = "$BASE_URL/api/download/mp3"
+        private const val BASE_URL_ENCODED = "aHR0cHM6Ly9lbWJlZC5kbHNydi5vbmxpbmU="
+        private val BASE_URL: String
+            get() = String(Base64.decode(BASE_URL_ENCODED, Base64.NO_WRAP), Charsets.UTF_8)
+        private val INFO_API_URL: String
+            get() = "$BASE_URL/api/info"
+        private val VIDEO_API_URL: String
+            get() = "$BASE_URL/api/download/mp4"
+        private val AUDIO_API_URL: String
+            get() = "$BASE_URL/api/download/mp3"
+        private const val SIGNING_SECRET = "bq7b3BBxmjR4YdrJFDFPGkDvYPeeDdHWZ+Bq8lYImeRY"
 
         @JvmStatic
-        fun getInstance(): IExtension = YouTubeExtension()
+        fun getInstance(): IExtension = Yt1sExtension()
     }
 
     private val client = OkHttpClient.Builder()
@@ -126,12 +134,15 @@ class YouTubeExtension : IExtension {
     }
 
     private fun fetchInfo(videoId: String): JsonObject {
+        val (timestamp, signature) = createSignedAuth()
         val body = gson.toJson(mapOf("videoId" to videoId))
         val req = Request.Builder()
             .url(INFO_API_URL)
             .header("User-Agent", USER_AGENT)
             .header("Content-Type", "application/json")
             .header("Referer", "$BASE_URL/v1/full?videoId=$videoId")
+            .header("x-app-timestamp", timestamp)
+            .header("x-app-signature", signature)
             .post(body.toRequestBody("application/json".toMediaType()))
             .build()
 
@@ -149,6 +160,7 @@ class YouTubeExtension : IExtension {
     }
 
     private fun requestVideoUrl(videoId: String, quality: Int): String {
+        val (timestamp, signature) = createSignedAuth()
         val body = gson.toJson(
             mapOf(
                 "videoId" to videoId,
@@ -161,6 +173,8 @@ class YouTubeExtension : IExtension {
             .header("User-Agent", USER_AGENT)
             .header("Content-Type", "application/json")
             .header("Referer", "$BASE_URL/v1/full?videoId=$videoId")
+            .header("x-app-timestamp", timestamp)
+            .header("x-app-signature", signature)
             .post(body.toRequestBody("application/json".toMediaType()))
             .build()
 
@@ -173,6 +187,7 @@ class YouTubeExtension : IExtension {
     }
 
     private fun requestAudioUrl(videoId: String, bitrate: String): String {
+        val (timestamp, signature) = createSignedAuth()
         val body = gson.toJson(
             mapOf(
                 "videoId" to videoId,
@@ -185,6 +200,8 @@ class YouTubeExtension : IExtension {
             .header("User-Agent", USER_AGENT)
             .header("Content-Type", "application/json")
             .header("Referer", "$BASE_URL/v1/full?videoId=$videoId")
+            .header("x-app-timestamp", timestamp)
+            .header("x-app-signature", signature)
             .post(body.toRequestBody("application/json".toMediaType()))
             .build()
 
@@ -222,6 +239,17 @@ class YouTubeExtension : IExtension {
             if (match != null) return match.groupValues[1]
         }
         return null
+    }
+
+    private fun createSignedAuth(): Pair<String, String> {
+        val timestamp = System.currentTimeMillis().toString()
+        val signature = sha256Hex(timestamp + SIGNING_SECRET)
+        return timestamp to signature
+    }
+
+    private fun sha256Hex(input: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
+        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     private fun errorJson(message: String): String {

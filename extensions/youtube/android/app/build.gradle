@@ -4,10 +4,10 @@ plugins {
 }
 
 android {
-    namespace "com.torikomi.extension_youtube"
+    namespace "com.torikomi.extension_yt1s"
     compileSdk 34
     defaultConfig {
-        applicationId "com.torikomi.extension_youtube"
+        applicationId "com.torikomi.extension_yt1s"
         minSdk 23
         targetSdk 34
         versionCode 1

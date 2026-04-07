@@ -1,2 +1,2 @@
--keep class com.torikomi.extension_youtube.** { *; }
+-keep class com.torikomi.extension_yt1s.** { *; }
 -keep interface com.torikomi.extension.** { *; }

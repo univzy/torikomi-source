@@ -50,7 +50,7 @@ class Yt1sExtension : IExtension {
     override fun getDownloaderName(): String = "YT1S"
 
     override fun getDownloaderDescription(): String =
-        "YouTube downloader via YT1S (video MP4 dan audio MP3)."
+        "YouTube downloader via YT1S (video MP4 dan audio MP3/M4A/OPUS)."
 
     override fun canHandle(url: String): Boolean {
         val normalized = url.lowercase()
@@ -80,7 +80,7 @@ class Yt1sExtension : IExtension {
         val formats = info.getAsJsonArray("formats") ?: JsonArray()
 
         val videoQualities = extractVideoQualities(formats)
-        val audioUrl = requestAudioUrl(videoId, "128")
+        val audioOptions = buildAudioOptions(formats)
 
         val downloadItems = mutableListOf<Map<String, String>>()
         videoQualities.forEach { quality ->
@@ -96,15 +96,18 @@ class Yt1sExtension : IExtension {
                 )
             }
         }
-        if (audioUrl.isNotBlank()) {
-            downloadItems += mapOf(
-                "key" to "audio_mp3",
-                "label" to "Audio MP3",
-                "type" to "audio",
-                "url" to audioUrl,
-                "mimeType" to "audio/mpeg",
-                "quality" to "128kbps"
-            )
+        audioOptions.forEach { option ->
+            val audioUrl = requestAudioUrl(videoId, option.format, option.bitrate)
+            if (audioUrl.isNotBlank()) {
+                downloadItems += mapOf(
+                    "key" to "audio_${option.format}_${option.bitrate ?: "default"}",
+                    "label" to option.label,
+                    "type" to "audio",
+                    "url" to audioUrl,
+                    "mimeType" to audioMimeType(option.format),
+                    "quality" to option.quality
+                )
+            }
         }
 
         if (downloadItems.isEmpty()) {
@@ -188,15 +191,14 @@ class Yt1sExtension : IExtension {
         }
     }
 
-    private fun requestAudioUrl(videoId: String, bitrate: String): String {
+    private fun requestAudioUrl(videoId: String, format: String, bitrate: String?): String {
         val (timestamp, signature) = createSignedAuth()
-        val body = gson.toJson(
-            mapOf(
-                "videoId" to videoId,
-                "format" to "mp3",
-                "quality" to bitrate
-            )
+        val payload = mutableMapOf(
+            "videoId" to videoId,
+            "format" to format
         )
+        if (!bitrate.isNullOrBlank()) payload["quality"] = bitrate
+        val body = gson.toJson(payload)
         val req = Request.Builder()
             .url(AUDIO_API_URL)
             .header("User-Agent", USER_AGENT)
@@ -227,6 +229,67 @@ class Yt1sExtension : IExtension {
         }
             .distinct()
             .sortedDescending()
+    }
+
+    private fun buildAudioOptions(formats: JsonArray): List<AudioOption> {
+        val fromInfo = formats.mapNotNull { item ->
+            val obj = item.asJsonObject
+            val type = obj.get("type")?.asString.orEmpty()
+            if (type != "audio") return@mapNotNull null
+            obj.get("format")?.asString?.lowercase()?.takeIf { it.isNotBlank() }
+        }
+            .distinct()
+
+        val normalized = if (fromInfo.isEmpty()) listOf("mp3") else (fromInfo + "mp3").distinct()
+        val options = mutableListOf<AudioOption>()
+
+        if ("mp3" in normalized) {
+            val mp3Bitrates = listOf("320", "256", "128", "96", "64")
+            mp3Bitrates.forEach { bitrate ->
+                options += AudioOption(
+                    format = "mp3",
+                    bitrate = bitrate,
+                    label = "Audio MP3 ${bitrate}kbps",
+                    quality = "${bitrate}kbps"
+                )
+            }
+        }
+
+        if ("m4a" in normalized) {
+            options += AudioOption(
+                format = "m4a",
+                bitrate = "128",
+                label = "Audio M4A",
+                quality = "M4A"
+            )
+        }
+
+        if ("opus" in normalized) {
+            options += AudioOption(
+                format = "opus",
+                bitrate = "128",
+                label = "Audio OPUS",
+                quality = "OPUS"
+            )
+        }
+
+        return options
+    }
+
+    private data class AudioOption(
+        val format: String,
+        val bitrate: String?,
+        val label: String,
+        val quality: String
+    )
+
+    private fun audioMimeType(format: String): String {
+        return when (format.lowercase()) {
+            "mp3" -> "audio/mpeg"
+            "m4a" -> "audio/mp4"
+            "opus" -> "audio/opus"
+            else -> "audio/$format"
+        }
     }
 
     private fun extractVideoId(url: String): String? {

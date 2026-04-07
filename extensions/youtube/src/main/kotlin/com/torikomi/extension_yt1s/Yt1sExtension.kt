@@ -79,20 +79,22 @@ class Yt1sExtension : IExtension {
         val duration = info.get("duration")?.asInt ?: 0
         val formats = info.getAsJsonArray("formats") ?: JsonArray()
 
-        val bestVideoQuality = pickBestVideoQuality(formats)
-        val videoUrl = bestVideoQuality?.let { requestVideoUrl(videoId, it) }.orEmpty()
+        val videoQualities = extractVideoQualities(formats)
         val audioUrl = requestAudioUrl(videoId, "128")
 
         val downloadItems = mutableListOf<Map<String, String>>()
-        if (videoUrl.isNotBlank()) {
-            downloadItems += mapOf(
-                "key" to "video_best",
-                "label" to (if (bestVideoQuality != null) "Video ${bestVideoQuality}p" else "Video"),
-                "type" to "video",
-                "url" to videoUrl,
-                "mimeType" to "video/mp4",
-                "quality" to (bestVideoQuality?.let { "${it}p" } ?: "")
-            )
+        videoQualities.forEach { quality ->
+            val videoUrl = requestVideoUrl(videoId, quality)
+            if (videoUrl.isNotBlank()) {
+                downloadItems += mapOf(
+                    "key" to "video_${quality}",
+                    "label" to "Video ${quality}p",
+                    "type" to "video",
+                    "url" to videoUrl,
+                    "mimeType" to "video/mp4",
+                    "quality" to "${quality}p"
+                )
+            }
         }
         if (audioUrl.isNotBlank()) {
             downloadItems += mapOf(
@@ -213,8 +215,8 @@ class Yt1sExtension : IExtension {
         }
     }
 
-    private fun pickBestVideoQuality(formats: JsonArray): Int? {
-        val qualities = formats.mapNotNull { item ->
+    private fun extractVideoQualities(formats: JsonArray): List<Int> {
+        return formats.mapNotNull { item ->
             val obj = item.asJsonObject
             val type = obj.get("type")?.asString.orEmpty()
             if (type != "video") return@mapNotNull null
@@ -223,7 +225,8 @@ class Yt1sExtension : IExtension {
             val number = Regex("(\\d+)").find(qualityRaw)?.groupValues?.getOrNull(1)
             number?.toIntOrNull()
         }
-        return qualities.maxOrNull()
+            .distinct()
+            .sortedDescending()
     }
 
     private fun extractVideoId(url: String): String? {

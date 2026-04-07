@@ -26,7 +26,7 @@ class TwitterExtension : IExtension {
     private val gson = Gson()
     private val apiBase = "https://twitterdownloader.snapsave.app"
 
-    override fun getId(): String = "twitter"
+    override fun getId(): String = "snapsave_twitter"
 
     override fun getPlatformId(): String = "twitter"
 
@@ -37,7 +37,7 @@ class TwitterExtension : IExtension {
     override fun getDownloaderName(): String = "SnapSave"
 
     override fun getDownloaderDescription(): String =
-        "Downloader SnapSave untuk unduh video dan foto Twitter/X dengan cepat."
+        "SnapSave downloader for quickly downloading Twitter/X videos and photos."
 
     override fun canHandle(url: String): Boolean {
         return url.contains("twitter.com") || url.contains("x.com")

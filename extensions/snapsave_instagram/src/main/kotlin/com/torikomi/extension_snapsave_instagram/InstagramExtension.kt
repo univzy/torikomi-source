@@ -26,7 +26,7 @@ class InstagramExtension : IExtension {
         .build()
     private val gson = Gson()
 
-    override fun getId(): String = "instagram"
+    override fun getId(): String = "snapsave_instagram"
 
     override fun getPlatformId(): String = "instagram"
 
@@ -37,7 +37,7 @@ class InstagramExtension : IExtension {
     override fun getDownloaderName(): String = "SnapSave"
 
     override fun getDownloaderDescription(): String =
-        "Downloader SnapSave untuk unduh video dan foto Instagram dengan cepat."
+        "SnapSave downloader for quickly downloading Instagram videos and photos."
 
     override fun canHandle(url: String): Boolean =
         url.contains("instagram.com") || url.contains("instagr.am")

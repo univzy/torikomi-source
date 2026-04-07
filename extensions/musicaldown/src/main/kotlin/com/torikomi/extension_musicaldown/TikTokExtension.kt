@@ -27,7 +27,7 @@ class TikTokExtension : IExtension {
     private val musicalDownUrl = "https://musicaldown.com"
     private val musicalDownApi = "https://musicaldown.com/download"
 
-    override fun getId(): String = "tiktok"
+    override fun getId(): String = "musicaldown"
 
     override fun getPlatformId(): String = "tiktok"
 
@@ -38,7 +38,7 @@ class TikTokExtension : IExtension {
     override fun getDownloaderName(): String = "MusicalDown"
 
     override fun getDownloaderDescription(): String =
-        "Downloader MusicalDown untuk konten TikTok (video, audio, dan gambar)."
+        "MusicalDown downloader for TikTok content (video, audio, and images)."
 
     override fun canHandle(url: String): Boolean {
         return url.contains("tiktok.com") || url.contains("vm.tiktok.com") || url.contains("vt.tiktok.com")

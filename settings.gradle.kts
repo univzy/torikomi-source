@@ -20,7 +20,8 @@ rootProject.name = "torikomi-extensions"
 val extensionIds = listOf(
     "musicaldown",
     "snapsave_twitter",
-    "snapsave_instagram"
+    "snapsave_instagram",
+    "youtube"
 )
 
 extensionIds.forEach { id ->

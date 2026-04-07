@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:icon="@drawable/icon_yt1s"
+        android:label="Torikomi: YT1S">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <provider
+            android:name=".ExtensionProvider"
+            android:authorities="torikomi.extension.youtube"
+            android:exported="true" />
+
+        <meta-data android:name="torikomi.extension" android:value="true" />
+        <meta-data android:name="torikomi.extension.id" android:value="youtube" />
+        <meta-data android:name="torikomi.extension.platform" android:value="youtube" />
+        <meta-data android:name="torikomi.extension.platformName" android:value="YouTube" />
+        <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
+        <meta-data android:name="torikomi.extension.downloader" android:value="YT1S" />
+        <meta-data android:name="torikomi.extension.description" android:value="Downloader YouTube via YT1S (video MP4 dan audio MP3)." />
+        <meta-data android:name="torikomi.extension.lang" android:value="multi" />
+        <meta-data android:name="torikomi.extension.icon" android:value="icon-yt1s" />
+        <meta-data android:name="torikomi.extension.color" android:value="#FF0000" />
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+
+</manifest>

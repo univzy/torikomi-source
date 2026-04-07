@@ -1,0 +1,2 @@
+-keep class com.torikomi.extension_youtube.** { *; }
+-keep interface com.torikomi.extension.** { *; }

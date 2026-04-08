@@ -21,7 +21,7 @@ val extensionIds = listOf(
     "musicaldown",
     "snapsave_twitter",
     "snapsave_instagram",
-    "youtube"
+    "yt1s"
 )
 
 extensionIds.forEach { id ->

@@ -194,7 +194,7 @@ $AllExtensions = @(
     @{ id = "musicaldown"; lang = "multi"; version = "1.0.0" },
     @{ id = "snapsave_twitter"; lang = "multi"; version = "1.0.0" },
     @{ id = "snapsave_instagram"; lang = "multi"; version = "1.0.0" },
-    @{ id = "youtube"; lang = "multi"; version = "1.0.0" }
+    @{ id = "yt1s"; lang = "multi"; version = "1.0.0" }
 )
 
 # ── Filter by requested extensions ───────────────────────────────────────────

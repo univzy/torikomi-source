@@ -14,13 +14,13 @@
 
         <provider
             android:name=".ExtensionProvider"
-            android:authorities="torikomi.extension.youtube"
+            android:authorities="torikomi.extension.yt1s"
             android:exported="true" />
 
         <meta-data android:name="torikomi.extension" android:value="true" />
-        <meta-data android:name="torikomi.extension.id" android:value="youtube" />
-        <meta-data android:name="torikomi.extension.platform" android:value="youtube" />
-        <meta-data android:name="torikomi.extension.platformName" android:value="YouTube" />
+        <meta-data android:name="torikomi.extension.id" android:value="yt1s" />
+        <meta-data android:name="torikomi.extension.platform" android:value="yt1s" />
+        <meta-data android:name="torikomi.extension.platformName" android:value="YT1S" />
         <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
         <meta-data android:name="torikomi.extension.downloader" android:value="YT1S" />
         <meta-data android:name="torikomi.extension.description" android:value="Downloader YouTube via YT1S (video MP4 dan audio MP3)." />

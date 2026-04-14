@@ -1,6 +1,7 @@
 package com.torikomi.extension_yt1s
 
 import android.content.Context
+import android.net.Uri
 import android.util.Base64
 import com.google.gson.Gson
 import com.google.gson.JsonArray
@@ -427,13 +428,24 @@ class Yt1sExtension : IExtension {
     }
 
     private fun extractPlaylistId(url: String): String? {
+        val queryList = runCatching {
+            Uri.parse(url)
+                .getQueryParameter("list")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+        }.getOrNull()
+        if (!queryList.isNullOrBlank()) return queryList
+
         val patterns = listOf(
-            Regex("[?&]list=([a-zA-Z0-9_-]+)"),
-            Regex("youtube\\.com/playlist\\?list=([a-zA-Z0-9_-]+)")
+            Regex("[?&]list=([^&#]+)", RegexOption.IGNORE_CASE),
+            Regex("youtube\\.com/playlist\\?[^#]*list=([^&#]+)", RegexOption.IGNORE_CASE)
         )
         for (pattern in patterns) {
             val match = pattern.find(url)
-            if (match != null) return match.groupValues[1]
+            if (match != null) {
+                val playlistId = match.groupValues[1].trim()
+                if (playlistId.isNotBlank()) return playlistId
+            }
         }
         return null
     }

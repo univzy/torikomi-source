@@ -27,6 +27,8 @@ class Yt1sExtension : IExtension {
             get() = "$BASE_URL/api/download/mp4"
         private val AUDIO_API_URL: String
             get() = "$BASE_URL/api/download/mp3"
+        private const val PLAYLIST_FEED_BASE_URL = "https://www.youtube.com/feeds/videos.xml?playlist_id="
+        private const val PLAYLIST_MAX_ITEMS = 25
         private const val SIGNING_SECRET = "bq7b3BBxmjR4YdrJFDFPGkDvYPeeDdHWZ+Bq8lYImeRY"
 
         @JvmStatic
@@ -45,7 +47,7 @@ class Yt1sExtension : IExtension {
 
     override fun getPlatformName(): String = "YouTube"
 
-    override fun getVersion(): String = "1.0.0"
+    override fun getVersion(): String = "1.0.1"
 
     override fun getDownloaderName(): String = "YT1S"
 
@@ -68,6 +70,14 @@ class Yt1sExtension : IExtension {
     }
 
     private fun scrapeYoutube(url: String): String {
+        val playlistId = extractPlaylistId(url)
+        val urlLower = url.lowercase()
+        val shouldUsePlaylistFlow = playlistId != null &&
+            (urlLower.contains("/playlist") || extractVideoId(url) == null)
+        if (shouldUsePlaylistFlow) {
+            return scrapeYoutubePlaylist(playlistId)
+        }
+
         val videoId = extractVideoId(url)
             ?: throw IllegalStateException("Invalid YouTube URL")
 
@@ -136,6 +146,115 @@ class Yt1sExtension : IExtension {
                 "images" to emptyList<String>()
             )
         )
+    }
+
+    private fun scrapeYoutubePlaylist(playlistId: String): String {
+        val videoIds = fetchPlaylistVideoIds(playlistId)
+        if (videoIds.isEmpty()) {
+            throw IllegalStateException("Playlist kosong atau tidak bisa diakses")
+        }
+
+        val downloadItems = mutableListOf<Map<String, String>>()
+        var playlistTitle = "YouTube Playlist"
+        var author = ""
+        var thumbnail = ""
+
+        videoIds.forEachIndexed { index, videoId ->
+            val info = runCatching { fetchInfo(videoId) }.getOrNull() ?: return@forEachIndexed
+            val title = info.get("title")?.asString?.takeIf { it.isNotBlank() } ?: "Video ${index + 1}"
+            if (index == 0) {
+                val firstThumbnail = info.get("thumbnail")?.asString.orEmpty()
+                if (firstThumbnail.isNotBlank()) thumbnail = firstThumbnail
+
+                val firstAuthor = info.get("author")?.asString.orEmpty()
+                if (firstAuthor.isNotBlank()) author = firstAuthor
+
+                val feedTitle = fetchPlaylistTitle(playlistId)
+                playlistTitle = feedTitle ?: "Playlist - $title"
+            }
+
+            val formats = info.getAsJsonArray("formats") ?: JsonArray()
+            val bestQuality = extractVideoQualities(formats).firstOrNull() ?: return@forEachIndexed
+            val videoUrl = requestVideoUrl(videoId, bestQuality)
+            if (videoUrl.isBlank()) return@forEachIndexed
+
+            val indexLabel = (index + 1).toString().padStart(2, '0')
+            downloadItems += mapOf(
+                "key" to "playlist_${indexLabel}_$videoId",
+                "label" to "$indexLabel. $title",
+                "type" to "video",
+                "url" to videoUrl,
+                "mimeType" to "video/mp4",
+                "quality" to "${bestQuality}p"
+            )
+        }
+
+        if (downloadItems.isEmpty()) {
+            throw IllegalStateException("Tidak ada video playlist yang bisa diunduh")
+        }
+
+        if (thumbnail.isBlank()) {
+            thumbnail = "https://i.ytimg.com/vi/${videoIds.first()}/maxresdefault.jpg"
+        }
+
+        return gson.toJson(
+            mapOf(
+                "extensionId" to "youtube",
+                "platform" to "youtube",
+                "platformName" to getPlatformName(),
+                "version" to getVersion(),
+                "downloaderName" to getDownloaderName(),
+                "description" to "${getDownloaderDescription()} Playlist mode: 1 item video per entry.",
+                "title" to playlistTitle,
+                "author" to author,
+                "authorName" to author,
+                "duration" to 0,
+                "thumbnail" to thumbnail,
+                "downloadItems" to downloadItems,
+                "playCount" to 0,
+                "diggCount" to 0,
+                "commentCount" to 0,
+                "shareCount" to 0,
+                "downloadCount" to 0,
+                "images" to emptyList<String>()
+            )
+        )
+    }
+
+    private fun fetchPlaylistVideoIds(playlistId: String): List<String> {
+        val req = Request.Builder()
+            .url("$PLAYLIST_FEED_BASE_URL$playlistId")
+            .header("User-Agent", USER_AGENT)
+            .get()
+            .build()
+
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) return emptyList()
+            val xml = resp.body?.string().orEmpty()
+            val ids = Regex("<yt:videoId>([a-zA-Z0-9_-]{11})</yt:videoId>")
+                .findAll(xml)
+                .map { it.groupValues[1] }
+                .distinct()
+                .take(PLAYLIST_MAX_ITEMS)
+                .toList()
+            return ids
+        }
+    }
+
+    private fun fetchPlaylistTitle(playlistId: String): String? {
+        val req = Request.Builder()
+            .url("$PLAYLIST_FEED_BASE_URL$playlistId")
+            .header("User-Agent", USER_AGENT)
+            .get()
+            .build()
+
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) return null
+            val xml = resp.body?.string().orEmpty()
+            val titleMatch = Regex("<title>([^<]+)</title>").find(xml) ?: return null
+            val title = titleMatch.groupValues.getOrNull(1)?.trim().orEmpty()
+            return title.takeIf { it.isNotBlank() }
+        }
     }
 
     private fun fetchInfo(videoId: String): JsonObject {
@@ -299,6 +418,18 @@ class Yt1sExtension : IExtension {
             Regex("youtube\\.com/v/([a-zA-Z0-9_-]{11})"),
             Regex("youtube\\.com/shorts/([a-zA-Z0-9_-]{11})"),
             Regex("[?&]v=([a-zA-Z0-9_-]{11})")
+        )
+        for (pattern in patterns) {
+            val match = pattern.find(url)
+            if (match != null) return match.groupValues[1]
+        }
+        return null
+    }
+
+    private fun extractPlaylistId(url: String): String? {
+        val patterns = listOf(
+            Regex("[?&]list=([a-zA-Z0-9_-]+)"),
+            Regex("youtube\\.com/playlist\\?list=([a-zA-Z0-9_-]+)")
         )
         for (pattern in patterns) {
             val match = pattern.find(url)

@@ -1,4 +1,4 @@
-package com.torikomi.extension_yt1s
+package com.torikomi.extension_ytdown
 
 import android.content.ContentProvider
 import android.content.ContentValues
@@ -26,7 +26,7 @@ class ExtensionProvider : ContentProvider() {
         val cfCookies = uri.getQueryParameter("cfCookies")
 
         val resultJson = runCatching {
-            val extension = Yt1sExtension()
+            val extension = YtdownExtension()
             extension.scrape(ctx, url, cfCookies)
         }.getOrElse { ex ->
             val safeMessage = (ex.message ?: "unknown error").replace("\"", "'")

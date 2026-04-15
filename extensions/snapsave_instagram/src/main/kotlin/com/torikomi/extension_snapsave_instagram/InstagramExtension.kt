@@ -1,19 +1,16 @@
 package com.torikomi.extension_snapsave_instagram
 
 import android.content.Context
-import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.torikomi.browser.BrowserCompatibilityManager
 import com.torikomi.extension.IExtension
 import okhttp3.FormBody
-import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.brotli.dec.BrotliInputStream
 import org.jsoup.Jsoup
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.TimeUnit
 
 class InstagramExtension : IExtension {
     companion object {
@@ -57,15 +54,11 @@ class InstagramExtension : IExtension {
                         brStream.copyTo(decompressedBytes)
                     }
                     val decompressed = decompressedBytes.toByteArray()
-                    
-                    Log.d("INSTAGRAM", "Brotli decompressed: ${compressedBytes.size} → ${decompressed.size} bytes")
-                    
                     response.newBuilder()
                         .body(decompressed.toResponseBody(responsebody.contentType()))
                         .removeHeader("Content-Encoding")
                         .build()
                 } catch (e: Exception) {
-                    Log.e("INSTAGRAM", "Brotli decompression failed: ${e.message}", e)
                     response
                 }
             }
@@ -120,25 +113,12 @@ class InstagramExtension : IExtension {
 
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                val errorBody = response.body?.string().orEmpty()
-                Log.e("INSTAGRAM", "scrapeInstagram FAILED - Status: ${response.code} ${response.message} - URL: $API_BASE/id/action.php - Body: ${errorBody.take(500)}")
                 throw IllegalStateException("API returned status ${response.code} - ${response.message}")
             }
-
             val encrypted = response.body?.string().orEmpty()
-            if (encrypted.isEmpty()) {
-                Log.e("INSTAGRAM", "scrapeInstagram - Empty response body from API")
-                throw IllegalStateException("Empty response from API")
-            }
-            
-            Log.d("INSTAGRAM", "scrapeInstagram - Got encrypted response, decrypting...")
+            if (encrypted.isEmpty()) throw IllegalStateException("Empty response from API")
             val html = decryptResponse(encrypted)
-            if (html.isBlank()) {
-                Log.e("INSTAGRAM", "scrapeInstagram - Failed to decrypt response")
-                throw IllegalStateException("Failed to decrypt response")
-            }
-
-            Log.d("INSTAGRAM", "scrapeInstagram - SUCCESS, parsing data...")
+            if (html.isBlank()) throw IllegalStateException("Failed to decrypt response")
             return parseInstagramData(html)
         }
     }

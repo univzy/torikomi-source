@@ -14,7 +14,7 @@
 
         <provider
             android:name=".ExtensionProvider"
-            android:authorities="torikomi.extension.twitter"
+            android:authorities="torikomi.extension.snapsave_twitter"
             android:exported="true" />
 
         <meta-data android:name="torikomi.extension" android:value="true" />

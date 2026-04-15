@@ -183,74 +183,79 @@ class TwitterExtension : IExtension {
 
     private fun parseTwitterData(htmlContent: String): String {
         val document = Jsoup.parse(htmlContent)
-        val downloadBlock = document.selectFirst("#download-block")
-            ?: throw IllegalStateException("Download block not found")
 
-        val downloadUrl = downloadBlock
-            .selectFirst(".abuttons > a")
-            ?.attr("href")
-            .orEmpty()
-        if (downloadUrl.isBlank()) {
-            throw IllegalStateException("Download URL not found")
-        }
+        val authorName = document
+            .selectFirst("h1[itemprop=name] a")
+            ?.text()?.trim().orEmpty()
 
-        val description = document
+        val caption = document
             .selectFirst(".videotikmate-middle > p > span")
-            ?.text()
-            ?.trim()
-            .orEmpty()
+            ?.text()?.trim().orEmpty()
+
+        val title = caption.ifBlank { authorName }
 
         val thumbnail = document
             .selectFirst(".videotikmate-left > img")
-            ?.attr("src")
-            .orEmpty()
+            ?.attr("src").orEmpty()
 
-        val buttonText = downloadBlock
-            .selectFirst(".abuttons > a > span > span")
-            ?.text()
-            ?.trim()
-            ?.lowercase()
-            .orEmpty()
+        // Try desktop block first (.videotikmate-right), then mobile #download-block
+        val desktopHref = document
+            .selectFirst(".videotikmate-right .abuttons > a")
+            ?.attr("href").orEmpty()
+        val mobileHref = document
+            .selectFirst("#download-block .abuttons > a")
+            ?.attr("href").orEmpty()
+        val downloadUrl = desktopHref.ifBlank { mobileHref }
 
-        val isVideo = !buttonText.contains("photo")
+        // Detect type from button text (prefer mobile block, fall back to desktop)
+        val buttonText = (document.selectFirst("#download-block .abuttons > a span span")
+            ?: document.selectFirst(".videotikmate-right .abuttons > a span span"))
+            ?.text()?.trim()?.lowercase().orEmpty()
+        val isPhoto = buttonText.contains("photo")
 
-        val downloadItems = if (isVideo) {
+        val downloadItems = if (!isPhoto && downloadUrl.isNotBlank()) {
             listOf(
                 mapOf(
-                    "key" to "video_hd",
-                    "label" to "Video HD",
-                    "type" to "video",
-                    "url" to downloadUrl,
+                    "key"      to "video_hd",
+                    "label"    to "Video HD",
+                    "type"     to "video",
+                    "url"      to downloadUrl,
                     "mimeType" to "video/mp4",
-                    "quality" to "HD",
+                    "quality"  to "HD",
                 )
             )
-        } else {
-            emptyList()
-        }
+        } else emptyList()
 
-        val images = if (isVideo) emptyList() else listOf(downloadUrl)
+        // For photos: use downloadUrl if available, otherwise promote thumbnail to full-res
+        val images = if (isPhoto) {
+            val photoUrl = downloadUrl.ifBlank {
+                if (thumbnail.contains("pbs.twimg.com/media")) {
+                    thumbnail.substringBefore("?") + "?format=jpg&name=orig"
+                } else thumbnail
+            }
+            if (photoUrl.isNotBlank()) listOf(photoUrl) else emptyList()
+        } else emptyList()
 
         return gson.toJson(
             mapOf(
-                "extensionId" to "twitter",
-                "platform" to "twitter",
-                "platformName" to getPlatformName(),
-                "version" to getVersion(),
+                "extensionId"    to "twitter",
+                "platform"       to "twitter",
+                "platformName"   to getPlatformName(),
+                "version"        to getVersion(),
                 "downloaderName" to getDownloaderName(),
-                "description" to getDownloaderDescription(),
-                "title" to description,
-                "author" to "",
-                "authorName" to "",
-                "duration" to 0,
-                "thumbnail" to thumbnail,
-                "downloadItems" to downloadItems,
-                "playCount" to 0,
-                "diggCount" to 0,
-                "commentCount" to 0,
-                "shareCount" to 0,
-                "downloadCount" to 0,
-                "images" to images,
+                "description"    to getDownloaderDescription(),
+                "title"          to title,
+                "author"         to authorName,
+                "authorName"     to authorName,
+                "duration"       to 0,
+                "thumbnail"      to thumbnail,
+                "downloadItems"  to downloadItems,
+                "playCount"      to 0,
+                "diggCount"      to 0,
+                "commentCount"   to 0,
+                "shareCount"     to 0,
+                "downloadCount"  to 0,
+                "images"         to images,
             )
         )
     }

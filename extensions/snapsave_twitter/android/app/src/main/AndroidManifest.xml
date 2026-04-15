@@ -18,7 +18,7 @@
             android:exported="true" />
 
         <meta-data android:name="torikomi.extension" android:value="true" />
-        <meta-data android:name="torikomi.extension.id" android:value="twitter" />
+        <meta-data android:name="torikomi.extension.id" android:value="snapsave_twitter" />
         <meta-data android:name="torikomi.extension.platform" android:value="twitter" />
         <meta-data android:name="torikomi.extension.platformName" android:value="Twitter" />
         <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />

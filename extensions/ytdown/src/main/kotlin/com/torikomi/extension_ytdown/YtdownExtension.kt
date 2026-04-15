@@ -4,12 +4,15 @@ import android.content.Context
 import android.net.Uri
 import android.util.Base64
 import com.google.gson.Gson
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.torikomi.browser.BrowserCompatibilityManager
 import com.torikomi.extension.IExtension
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.brotli.dec.BrotliInputStream
 import java.io.ByteArrayOutputStream
@@ -21,8 +24,9 @@ class YtdownExtension : IExtension {
         private const val PROXY_API_URL_ENCODED = "aHR0cHM6Ly9hcHAueXRkb3duLnRvL3Byb3h5LnBocA=="
         private val PROXY_API_URL: String
             get() = String(Base64.decode(PROXY_API_URL_ENCODED, Base64.NO_WRAP), Charsets.UTF_8)
-        private const val PLAYLIST_FEED_BASE_URL = "https://www.youtube.com/feeds/videos.xml?playlist_id="
-        private const val PLAYLIST_MAX_ITEMS = 25
+        private const val INNERTUBE_URL = "https://www.youtube.com/youtubei/v1/browse"
+        private const val INNERTUBE_CLIENT_VERSION = "2.20231121.09.00"
+        private const val PLAYLIST_MAX_PAGES = 20  // ~20 × 100 items = up to 2000 items
 
         @JvmStatic
         fun getInstance(): IExtension = YtdownExtension()
@@ -232,41 +236,120 @@ class YtdownExtension : IExtension {
     private data class PlaylistEntry(val videoId: String, val title: String)
     private data class PlaylistData(val title: String, val entries: List<PlaylistEntry>)
 
-    /** Satu request ke RSS feed — ekstrak judul playlist + semua video (id + judul). */
+    /**
+     * Fetches a full YouTube playlist via the InnerTube API with pagination.
+     * Supports playlists of any size (tested up to 500+).
+     */
     private fun fetchPlaylistData(playlistId: String): PlaylistData {
-        val req = Request.Builder()
-            .url("$PLAYLIST_FEED_BASE_URL$playlistId")
-            .header("User-Agent", USER_AGENT)
-            .get()
-            .build()
+        val allEntries = mutableListOf<PlaylistEntry>()
+        var playlistTitle = "YouTube Playlist"
+        var continuationToken: String? = null
+        var isFirstPage = true
+        var pageCount = 0
 
-        client.newCall(req).execute().use { resp ->
-            if (!resp.isSuccessful) return PlaylistData("YouTube Playlist", emptyList())
-            val xml = resp.body?.string().orEmpty()
+        do {
+            val bodyJson = if (isFirstPage) {
+                """{"context":{"client":{"clientName":"WEB","clientVersion":"$INNERTUBE_CLIENT_VERSION","hl":"en","gl":"US"}},"browseId":"VL$playlistId"}"""
+            } else {
+                """{"context":{"client":{"clientName":"WEB","clientVersion":"$INNERTUBE_CLIENT_VERSION","hl":"en","gl":"US"}},"continuation":"${continuationToken!!}"}"""
+            }
 
-            // First <title> in the feed = playlist title
-            val playlistTitle = Regex("<title>([^<]+)</title>")
-                .find(xml)?.groupValues?.getOrNull(1)?.trim()
-                ?.takeIf { it.isNotBlank() } ?: "YouTube Playlist"
+            val req = Request.Builder()
+                .url(INNERTUBE_URL)
+                .header("User-Agent", USER_AGENT)
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json, */*")
+                .header("X-YouTube-Client-Name", "1")
+                .header("X-YouTube-Client-Version", INNERTUBE_CLIENT_VERSION)
+                .post(bodyJson.toRequestBody("application/json".toMediaType()))
+                .build()
 
-            val entries = Regex("<entry>(.*?)</entry>", setOf(RegexOption.DOT_MATCHES_ALL))
-                .findAll(xml)
-                .mapNotNull { m ->
-                    val block = m.groupValues[1]
-                    val videoId = Regex("<yt:videoId>([a-zA-Z0-9_-]{11})</yt:videoId>")
-                        .find(block)?.groupValues?.getOrNull(1) ?: return@mapNotNull null
-                    val rawTitle = Regex("<title>([^<]+)</title>")
-                        .find(block)?.groupValues?.getOrNull(1)?.trim() ?: "Video"
-                    val title = rawTitle
+            val responseJson = runCatching {
+                client.newCall(req).execute().use { resp ->
+                    val raw = resp.body?.string().orEmpty()
+                    JsonParser.parseString(raw).asJsonObject
+                }
+            }.getOrNull() ?: break
+
+            // Extract playlist title from first page metadata
+            if (isFirstPage) {
+                val title = runCatching {
+                    responseJson.getAsJsonObject("metadata")
+                        ?.getAsJsonObject("playlistMetadataRenderer")
+                        ?.get("title")?.asString
+                        ?.takeIf { it.isNotBlank() }
+                }.getOrNull()
+                if (title != null) playlistTitle = title
+            }
+
+            val videos = mutableListOf<PlaylistEntry>()
+            var nextToken: String? = null
+            traverseForPlaylistItems(responseJson, videos) { nextToken = it }
+
+            allEntries += videos
+            continuationToken = nextToken
+            isFirstPage = false
+            pageCount++
+
+            // Stop if no new videos and no continuation
+            if (videos.isEmpty()) break
+
+        } while (continuationToken != null && pageCount < PLAYLIST_MAX_PAGES)
+
+        return PlaylistData(playlistTitle, allEntries)
+    }
+
+    /**
+     * Recursively traverses a JsonElement tree to locate:
+     * - playlistVideoRenderer objects → extract video id + title
+     * - continuationItemRenderer objects → extract pagination token
+     */
+    private fun traverseForPlaylistItems(
+        element: JsonElement,
+        videos: MutableList<PlaylistEntry>,
+        onContinuationToken: (String) -> Unit,
+    ) {
+        when {
+            element.isJsonArray -> element.asJsonArray.forEach {
+                traverseForPlaylistItems(it, videos, onContinuationToken)
+            }
+            element.isJsonObject -> {
+                val obj = element.asJsonObject
+
+                if (obj.has("playlistVideoRenderer")) {
+                    val vr = obj.getAsJsonObject("playlistVideoRenderer")
+                    val videoId = vr.get("videoId")?.asString
+                        ?.takeIf { it.length == 11 } ?: return
+                    val title = runCatching {
+                        vr.getAsJsonObject("title")
+                            ?.getAsJsonArray("runs")
+                            ?.get(0)?.asJsonObject
+                            ?.get("text")?.asString
+                    }.getOrNull()
+                        ?: runCatching { vr.getAsJsonObject("title")?.get("simpleText")?.asString }.getOrNull()
+                        ?: "Video"
+                    videos += PlaylistEntry(videoId, title
                         .replace("&amp;", "&").replace("&lt;", "<")
                         .replace("&gt;", ">").replace("&quot;", "\"")
-                        .replace("&#39;", "'")
-                    PlaylistEntry(videoId, title)
+                        .replace("&#39;", "'"))
+                    return  // do not recurse deeper into this renderer
                 }
-                .take(PLAYLIST_MAX_ITEMS)
-                .toList()
 
-            return PlaylistData(playlistTitle, entries)
+                if (obj.has("continuationItemRenderer")) {
+                    val token = runCatching {
+                        obj.getAsJsonObject("continuationItemRenderer")
+                            ?.getAsJsonObject("continuationEndpoint")
+                            ?.getAsJsonObject("continuationCommand")
+                            ?.get("token")?.asString
+                    }.getOrNull()
+                    if (!token.isNullOrBlank()) onContinuationToken(token)
+                    return
+                }
+
+                obj.entrySet().forEach { (_, v) ->
+                    traverseForPlaylistItems(v, videos, onContinuationToken)
+                }
+            }
         }
     }
 
@@ -280,8 +363,7 @@ class YtdownExtension : IExtension {
             .url(PROXY_API_URL)
             .header("User-Agent", USER_AGENT)
             .header("Connection", "keep-alive")
-            .header("Accept", "*/*")
-            .header("Accept-Encoding", "gzip, deflate, br")
+            .header("Accept", "application/json, text/plain, */*")
             .header("x-requested-with", "XMLHttpRequest")
             .post(body)
             .build()
@@ -290,10 +372,50 @@ class YtdownExtension : IExtension {
             if (!resp.isSuccessful) {
                 throw IllegalStateException("Proxy API error: ${resp.code} ${resp.message}")
             }
-            val raw = resp.body?.string().orEmpty()
-            val json = JsonParser.parseString(raw).asJsonObject
+            
+            // Get raw bytes first
+            val rawBytes = resp.body?.bytes() ?: byteArrayOf()
+            if (rawBytes.isEmpty()) {
+                throw IllegalStateException("Proxy API response kosong")
+            }
+            
+            var raw = String(rawBytes, Charsets.UTF_8)
+            
+            // If response contains replacement chars (fffd), likely Brotli compressed
+            if (raw.contains('\ufffd')) {
+                raw = try {
+                    val decompressedBytes = ByteArrayOutputStream()
+                    BrotliInputStream(rawBytes.inputStream()).use { brStream ->
+                        brStream.copyTo(decompressedBytes)
+                    }
+                    decompressedBytes.toString("UTF-8")
+                } catch (e: Exception) {
+                    throw IllegalStateException("Response Brotli compressed tapi decompression gagal: ${e.message}. Coba gunakan header berbeda.")
+                }
+            }
+            
+            if (raw.isBlank()) {
+                throw IllegalStateException("Proxy API response kosong setelah dekompresi")
+            }
+            
+            // Remove BOM if present
+            if (raw.startsWith("\ufeff")) {
+                raw = raw.substring(1)
+            }
+            
+            // Validate it's valid JSON start
+            if (!raw.trim().startsWith("{") && !raw.trim().startsWith("[")) {
+                throw IllegalStateException("Response bukan JSON. First 200 chars: ${raw.take(200)}")
+            }
+            
+            val json = runCatching {
+                JsonParser.parseString(raw).asJsonObject
+            }.getOrElse { ex ->
+                throw IllegalStateException("JSON parse error: ${ex.message}. Response: ${raw.take(200)}")
+            }
+            
             val api = json.getAsJsonObject("api")
-                ?: throw IllegalStateException("Response tidak valid: field 'api' tidak ada")
+                ?: throw IllegalStateException("Response tidak valid: field 'api' tidak ada. Response: ${raw.take(200)}")
             val status = api.get("status")?.asString.orEmpty()
             if (status != "ok") {
                 val msg = api.get("message")?.asString ?: status

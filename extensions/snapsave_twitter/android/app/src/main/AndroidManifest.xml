@@ -24,6 +24,7 @@
         <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
         <meta-data android:name="torikomi.extension.downloader" android:value="SnapSave" />
         <meta-data android:name="torikomi.extension.description" android:value="Downloader SnapSave untuk unduh video dan foto Twitter/X dengan cepat." />
+        <meta-data android:name="torikomi.extension.urlPlaceholder" android:value="https://x.com/username/status/1234567890" />
         <meta-data android:name="torikomi.extension.lang" android:value="multi" />
         <meta-data android:name="torikomi.extension.icon" android:value="snapsave_twitter" />
         <meta-data android:name="torikomi.extension.color" android:value="#1D9BF0" />

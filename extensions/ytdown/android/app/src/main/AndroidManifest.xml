@@ -19,11 +19,12 @@
 
         <meta-data android:name="torikomi.extension" android:value="true" />
         <meta-data android:name="torikomi.extension.id" android:value="ytdown" />
-        <meta-data android:name="torikomi.extension.platform" android:value="ytdown" />
-        <meta-data android:name="torikomi.extension.platformName" android:value="YTDown" />
+        <meta-data android:name="torikomi.extension.platform" android:value="youtube" />
+        <meta-data android:name="torikomi.extension.platformName" android:value="YouTube" />
         <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
         <meta-data android:name="torikomi.extension.downloader" android:value="YTDown" />
         <meta-data android:name="torikomi.extension.description" android:value="Downloader YouTube via YTDown (video MP4 dan audio MP3/M4A)." />
+        <meta-data android:name="torikomi.extension.urlPlaceholder" android:value="https://youtube.com/watch?v=AbCdEfGhIjK" />
         <meta-data android:name="torikomi.extension.lang" android:value="multi" />
         <meta-data android:name="torikomi.extension.icon" android:value="icon-ytdown" />
         <meta-data android:name="torikomi.extension.color" android:value="#FF0000" />

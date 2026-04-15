@@ -18,12 +18,13 @@
             android:exported="true" />
 
         <meta-data android:name="torikomi.extension" android:value="true" />
-        <meta-data android:name="torikomi.extension.id" android:value="instagram" />
+        <meta-data android:name="torikomi.extension.id" android:value="snapsave_instagram" />
         <meta-data android:name="torikomi.extension.platform" android:value="instagram" />
         <meta-data android:name="torikomi.extension.platformName" android:value="Instagram" />
         <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
         <meta-data android:name="torikomi.extension.downloader" android:value="SnapSave" />
         <meta-data android:name="torikomi.extension.description" android:value="Downloader SnapSave untuk unduh video dan foto Instagram dengan cepat." />
+        <meta-data android:name="torikomi.extension.urlPlaceholder" android:value="https://www.instagram.com/p/AbCdEfGhIjK/" />
         <meta-data android:name="torikomi.extension.lang" android:value="multi" />
         <meta-data android:name="torikomi.extension.icon" android:value="snapsave_instagram" />
         <meta-data android:name="torikomi.extension.color" android:value="#E1306C" />

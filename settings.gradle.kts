@@ -22,6 +22,7 @@ val extensionIds = listOf(
     "snapsave_twitter",
     "snapsave_instagram",
     "snapsave_facebook",
+    "snapsave_threads",
     "ytdown"
 )
 

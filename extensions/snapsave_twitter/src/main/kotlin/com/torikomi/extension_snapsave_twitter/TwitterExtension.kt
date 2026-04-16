@@ -1,6 +1,7 @@
 package com.torikomi.extension_snapsave_twitter
 
 import android.content.Context
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.torikomi.browser.BrowserCompatibilityManager
@@ -14,6 +15,7 @@ import java.io.ByteArrayOutputStream
 
 class TwitterExtension : IExtension {
     companion object {
+        private const val TAG = "TWITTER_EXT"
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
 
@@ -41,23 +43,21 @@ class TwitterExtension : IExtension {
         .addNetworkInterceptor { chain ->
             val response = chain.proceed(chain.request())
             val contentEncoding = response.header("Content-Encoding").orEmpty()
-            
+            Log.d(TAG, "NetworkInterceptor: url=${chain.request().url} encoding=$contentEncoding status=${response.code}")
             if (contentEncoding.equals("br", ignoreCase = true)) {
                 return@addNetworkInterceptor try {
                     val responsebody = response.body ?: return@addNetworkInterceptor response
                     val compressedBytes = responsebody.bytes()
-                    
-                    // Decompress Brotli using BrotliInputStream
                     val decompressedBytes = ByteArrayOutputStream()
-                    BrotliInputStream(compressedBytes.inputStream()).use { brStream ->
-                        brStream.copyTo(decompressedBytes)
-                    }
+                    BrotliInputStream(compressedBytes.inputStream()).use { it.copyTo(decompressedBytes) }
                     val decompressed = decompressedBytes.toByteArray()
+                    Log.d(TAG, "Brotli: ${compressedBytes.size} → ${decompressed.size} bytes")
                     response.newBuilder()
                         .body(decompressed.toResponseBody(responsebody.contentType()))
                         .removeHeader("Content-Encoding")
                         .build()
                 } catch (e: Exception) {
+                    Log.e(TAG, "Brotli decompression failed: ${e.message}", e)
                     response
                 }
             }
@@ -68,35 +68,31 @@ class TwitterExtension : IExtension {
     private val apiBase = "https://twitterdownloader.snapsave.app"
 
     override fun getId(): String = "snapsave_twitter"
-
     override fun getPlatformId(): String = "twitter"
-
     override fun getPlatformName(): String = "Twitter"
-
     override fun getVersion(): String = "1.0.0"
-
     override fun getDownloaderName(): String = "SnapSave"
-
     override fun getDownloaderDescription(): String =
         "SnapSave downloader for quickly downloading Twitter/X videos and photos."
 
-    override fun canHandle(url: String): Boolean {
-        return url.contains("twitter.com") || url.contains("x.com")
-    }
+    override fun canHandle(url: String): Boolean =
+        url.contains("twitter.com") || url.contains("x.com")
 
     override fun scrape(context: Context, url: String, cfCookies: String?): String {
+        Log.d(TAG, "scrape() called — url=$url")
         return try {
             scrapeTwitter(url, cfCookies)
         } catch (e: Exception) {
+            Log.e(TAG, "scrape() top-level exception: ${e.message}", e)
             errorJson("SnapSave download failed: ${e.message ?: "Unknown error"}")
         }
     }
 
     private fun scrapeTwitter(url: String, cfCookies: String?): String {
+        Log.d(TAG, "getToken() start")
         val token = getToken(cfCookies)
-        if (token.isBlank()) {
-            throw IllegalStateException("Failed to get token")
-        }
+        Log.d(TAG, "getToken() result — blank=${token.isBlank()} value='${token.take(20)}'")
+        if (token.isBlank()) throw IllegalStateException("Failed to get token from $apiBase")
 
         val formBody = FormBody.Builder()
             .add("url", url)
@@ -106,27 +102,35 @@ class TwitterExtension : IExtension {
         val postReq = Request.Builder()
             .url("$apiBase/action.php")
             .header("User-Agent", USER_AGENT)
-            .header("Accept", "*/*")
+            .header("Accept", "application/json, text/javascript, */*; q=0.01")
             .header("Origin", apiBase)
             .header("Referer", "$apiBase/")
             .header("X-Requested-With", "XMLHttpRequest")
-            .apply {
-                if (!cfCookies.isNullOrBlank()) {
-                    header("Cookie", cfCookies)
-                }
-            }
+            .apply { if (!cfCookies.isNullOrBlank()) header("Cookie", cfCookies) }
             .post(formBody)
             .build()
 
+        Log.d(TAG, "POST ${postReq.url} token=${token.take(10)}…")
         client.newCall(postReq).execute().use { postResp ->
+            val statusLine = "${postResp.code} ${postResp.message}"
+            Log.d(TAG, "POST response — $statusLine")
             if (!postResp.isSuccessful) {
-                throw IllegalStateException("API returned status ${postResp.code} - ${postResp.message}")
+                val body = postResp.body?.string().orEmpty()
+                Log.e(TAG, "POST FAILED — $statusLine — body: ${body.take(300)}")
+                throw IllegalStateException("API returned $statusLine")
             }
             val raw = postResp.body?.string().orEmpty()
-            if (raw.isEmpty()) throw IllegalStateException("Empty response data")
+            Log.d(TAG, "POST raw body (first 500): ${raw.take(500)}")
+            if (raw.isEmpty()) throw IllegalStateException("Empty response from API")
+
             val html = extractHtmlData(raw)
-            if (html.isBlank()) throw IllegalStateException("Empty response data")
-            return parseTwitterData(html)
+            Log.d(TAG, "extractHtmlData — blank=${html.isBlank()} length=${html.length}")
+            Log.d(TAG, "HTML snippet (first 500): ${html.take(500)}")
+            if (html.isBlank()) throw IllegalStateException("Empty HTML data in response")
+
+            val result = parseTwitterData(html)
+            Log.d(TAG, "parseTwitterData result: $result")
+            return result
         }
     }
 
@@ -134,18 +138,21 @@ class TwitterExtension : IExtension {
         val getReq = Request.Builder()
             .url(apiBase)
             .header("User-Agent", USER_AGENT)
-            .apply {
-                if (!cfCookies.isNullOrBlank()) {
-                    header("Cookie", cfCookies)
-                }
-            }
+            .apply { if (!cfCookies.isNullOrBlank()) header("Cookie", cfCookies) }
             .build()
 
         return client.newCall(getReq).execute().use { resp ->
-            if (!resp.isSuccessful) return@use ""
+            Log.d(TAG, "getToken response — ${resp.code} ${resp.message}")
+            if (!resp.isSuccessful) {
+                Log.e(TAG, "getToken FAILED — ${resp.code}")
+                return@use ""
+            }
             val html = resp.body?.string().orEmpty()
+            Log.d(TAG, "getToken HTML length=${html.length}")
             val document = Jsoup.parse(html)
-            document.selectFirst("input[name=token]")?.attr("value").orEmpty()
+            val token = document.selectFirst("input[name=token]")?.attr("value").orEmpty()
+            Log.d(TAG, "getToken token found=${token.isNotBlank()}")
+            token
         }
     }
 
@@ -153,87 +160,68 @@ class TwitterExtension : IExtension {
         if (raw.isBlank()) return ""
         return runCatching {
             val json = gson.fromJson(raw, JsonObject::class.java)
+            val errorField = json.get("error")
+            Log.d(TAG, "extractHtmlData — error field: $errorField")
             json.get("data")?.asString.orEmpty()
-        }.getOrElse { raw }
+        }.getOrElse {
+            Log.e(TAG, "extractHtmlData — JSON parse failed: ${it.message}, returning raw")
+            raw
+        }
     }
 
     private fun parseTwitterData(htmlContent: String): String {
         val document = Jsoup.parse(htmlContent)
 
-        val authorName = document
-            .selectFirst("h1[itemprop=name] a")
-            ?.text()?.trim().orEmpty()
+        val authorName = document.selectFirst("h1[itemprop=name] a")?.text()?.trim().orEmpty()
+        val caption    = document.selectFirst(".videotikmate-middle > p > span")?.text()?.trim().orEmpty()
+        val title      = caption.ifBlank { authorName }
+        val thumbnail  = document.selectFirst(".videotikmate-left > img")?.attr("src").orEmpty()
 
-        val caption = document
-            .selectFirst(".videotikmate-middle > p > span")
-            ?.text()?.trim().orEmpty()
-
-        val title = caption.ifBlank { authorName }
-
-        val thumbnail = document
-            .selectFirst(".videotikmate-left > img")
-            ?.attr("src").orEmpty()
-
-        // Try desktop block first (.videotikmate-right), then mobile #download-block
-        val desktopHref = document
-            .selectFirst(".videotikmate-right .abuttons > a")
-            ?.attr("href").orEmpty()
-        val mobileHref = document
-            .selectFirst("#download-block .abuttons > a")
-            ?.attr("href").orEmpty()
+        val desktopHref = document.selectFirst(".videotikmate-right .abuttons > a")?.attr("href").orEmpty()
+        val mobileHref  = document.selectFirst("#download-block .abuttons > a")?.attr("href").orEmpty()
         val downloadUrl = desktopHref.ifBlank { mobileHref }
 
-        // Detect type from button text (prefer mobile block, fall back to desktop)
         val buttonText = (document.selectFirst("#download-block .abuttons > a span span")
             ?: document.selectFirst(".videotikmate-right .abuttons > a span span"))
             ?.text()?.trim()?.lowercase().orEmpty()
         val isPhoto = buttonText.contains("photo")
 
+        Log.d(TAG, "parse — author='$authorName' title='${title.take(60)}' thumbnail='$thumbnail'")
+        Log.d(TAG, "parse — desktopHref='$desktopHref' mobileHref='$mobileHref' buttonText='$buttonText' isPhoto=$isPhoto")
+
         val downloadItems = if (!isPhoto && downloadUrl.isNotBlank()) {
-            listOf(
-                mapOf(
-                    "key"      to "video_hd",
-                    "label"    to "Video HD",
-                    "type"     to "video",
-                    "url"      to downloadUrl,
-                    "mimeType" to "video/mp4",
-                    "quality"  to "HD",
-                )
-            )
+            listOf(mapOf("key" to "video_hd", "label" to "Video HD", "type" to "video",
+                         "url" to downloadUrl, "mimeType" to "video/mp4", "quality" to "HD"))
         } else emptyList()
 
-        // For photos: use downloadUrl if available, otherwise promote thumbnail to full-res
         val images = if (isPhoto) {
             val photoUrl = downloadUrl.ifBlank {
-                if (thumbnail.contains("pbs.twimg.com/media")) {
+                if (thumbnail.contains("pbs.twimg.com/media"))
                     thumbnail.substringBefore("?") + "?format=jpg&name=orig"
-                } else thumbnail
+                else thumbnail
             }
             if (photoUrl.isNotBlank()) listOf(photoUrl) else emptyList()
         } else emptyList()
 
-        return gson.toJson(
-            mapOf(
-                "extensionId"    to "twitter",
-                "platform"       to "twitter",
-                "platformName"   to getPlatformName(),
-                "version"        to getVersion(),
-                "downloaderName" to getDownloaderName(),
-                "description"    to getDownloaderDescription(),
-                "title"          to title,
-                "author"         to authorName,
-                "authorName"     to authorName,
-                "duration"       to 0,
-                "thumbnail"      to thumbnail,
-                "downloadItems"  to downloadItems,
-                "playCount"      to 0,
-                "diggCount"      to 0,
-                "commentCount"   to 0,
-                "shareCount"     to 0,
-                "downloadCount"  to 0,
-                "images"         to images,
-            )
-        )
+        Log.d(TAG, "parse — downloadItems=${downloadItems.size} images=${images.size}")
+
+        return gson.toJson(mapOf(
+            "extensionId"    to "twitter",
+            "platform"       to "twitter",
+            "platformName"   to getPlatformName(),
+            "version"        to getVersion(),
+            "downloaderName" to getDownloaderName(),
+            "description"    to getDownloaderDescription(),
+            "title"          to title,
+            "author"         to authorName,
+            "authorName"     to authorName,
+            "duration"       to 0,
+            "thumbnail"      to thumbnail,
+            "downloadItems"  to downloadItems,
+            "playCount"      to 0, "diggCount" to 0, "commentCount" to 0,
+            "shareCount"     to 0, "downloadCount" to 0,
+            "images"         to images,
+        ))
     }
 
     private fun errorJson(message: String): String {

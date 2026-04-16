@@ -335,6 +335,8 @@ class YtdownExtension : IExtension {
             .header("User-Agent", USER_AGENT)
             .header("Connection", "keep-alive")
             .header("Accept", "application/json, text/plain, */*")
+            .header("Origin", "https://app.ytdown.to")
+            .header("Referer", "https://app.ytdown.to/")
             .header("x-requested-with", "XMLHttpRequest")
             .post(body)
             .build()

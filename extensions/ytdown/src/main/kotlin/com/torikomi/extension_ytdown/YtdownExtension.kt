@@ -9,15 +9,14 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.torikomi.browser.BrowserCompatibilityManager
 import com.torikomi.extension.IExtension
+import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.brotli.dec.BrotliInputStream
 class YtdownExtension : IExtension {
     companion object {
         private const val USER_AGENT =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0"
         private const val PROXY_API_URL_ENCODED = "aHR0cHM6Ly9hcHAueXRkb3duLnRvL3Byb3h5LnBocA=="
         private val PROXY_API_URL: String
             get() = String(Base64.decode(PROXY_API_URL_ENCODED, Base64.NO_WRAP), Charsets.UTF_8)
@@ -85,7 +84,7 @@ class YtdownExtension : IExtension {
         val author = userInfoObj?.get("name")?.asString?.takeIf { it.isNotBlank() }
             ?: userInfoObj?.get("username")?.asString.orEmpty()
         val mediaItems = api.getAsJsonArray("mediaItems")
-            throw IllegalStateException("YTDown returned no media formats")
+            ?: throw IllegalStateException("YTDown returned no media formats")
 
         val downloadItems = mutableListOf<Map<String, Any>>()
         mediaItems.forEachIndexed { index, element ->
@@ -325,9 +324,8 @@ class YtdownExtension : IExtension {
     }
 
     private fun fetchMediaItems(videoUrl: String): JsonObject {
-        val body = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("url", videoUrl)
+        val body = FormBody.Builder()
+            .add("url", videoUrl)
             .build()
 
         val req = Request.Builder()
@@ -336,7 +334,7 @@ class YtdownExtension : IExtension {
             .header("Connection", "keep-alive")
             .header("Accept", "application/json, text/plain, */*")
             .header("Origin", "https://app.ytdown.to")
-            .header("Referer", "https://app.ytdown.to/")
+            .header("Referer", "https://app.ytdown.to/en23/")
             .header("x-requested-with", "XMLHttpRequest")
             .post(body)
             .build()

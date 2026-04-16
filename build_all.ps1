@@ -194,6 +194,7 @@ $AllExtensions = @(
     @{ id = "musicaldown"; lang = "multi"; version = "1.0.0" },
     @{ id = "snapsave_twitter"; lang = "multi"; version = "1.0.0" },
     @{ id = "snapsave_instagram"; lang = "multi"; version = "1.0.0" },
+    @{ id = "snapsave_facebook"; lang = "multi"; version = "1.0.0" },
     @{ id = "ytdown"; lang = "multi"; version = "1.0.0" }
 )
 

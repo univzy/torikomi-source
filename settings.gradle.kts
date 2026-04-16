@@ -21,6 +21,7 @@ val extensionIds = listOf(
     "musicaldown",
     "snapsave_twitter",
     "snapsave_instagram",
+    "snapsave_facebook",
     "ytdown"
 )
 

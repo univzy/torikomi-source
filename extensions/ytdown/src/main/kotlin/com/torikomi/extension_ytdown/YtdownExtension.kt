@@ -13,10 +13,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.brotli.dec.BrotliInputStream
-import java.io.ByteArrayOutputStream
-
 class YtdownExtension : IExtension {
     companion object {
         private const val USER_AGENT =
@@ -26,7 +23,7 @@ class YtdownExtension : IExtension {
             get() = String(Base64.decode(PROXY_API_URL_ENCODED, Base64.NO_WRAP), Charsets.UTF_8)
         private const val INNERTUBE_URL = "https://www.youtube.com/youtubei/v1/browse"
         private const val INNERTUBE_CLIENT_VERSION = "2.20231121.09.00"
-        private const val PLAYLIST_MAX_PAGES = 20  // ~20 × 100 items = up to 2000 items
+        private const val PLAYLIST_MAX_PAGES = 20  // up to 20 × 100 items per page
 
         @JvmStatic
         fun getInstance(): IExtension = YtdownExtension()
@@ -37,32 +34,6 @@ class YtdownExtension : IExtension {
         readTimeoutMs = 60_000,
         writeTimeoutMs = 60_000
     )
-        .addNetworkInterceptor { chain ->
-            val response = chain.proceed(chain.request())
-            val contentEncoding = response.header("Content-Encoding").orEmpty()
-            
-            if (contentEncoding.equals("br", ignoreCase = true)) {
-                return@addNetworkInterceptor try {
-                    val responsebody = response.body ?: return@addNetworkInterceptor response
-                    val compressedBytes = responsebody.bytes()
-                    
-                    // Decompress Brotli using BrotliInputStream
-                    val decompressedBytes = ByteArrayOutputStream()
-                    BrotliInputStream(compressedBytes.inputStream()).use { brStream ->
-                        brStream.copyTo(decompressedBytes)
-                    }
-                    val decompressed = decompressedBytes.toByteArray()
-                    
-                    response.newBuilder()
-                        .body(decompressed.toResponseBody(responsebody.contentType()))
-                        .removeHeader("Content-Encoding")
-                        .build()
-                } catch (e: Exception) {
-                    response
-                }
-            }
-            response
-        }
         .build()
     private val gson = Gson()
 
@@ -114,7 +85,7 @@ class YtdownExtension : IExtension {
         val author = userInfoObj?.get("name")?.asString?.takeIf { it.isNotBlank() }
             ?: userInfoObj?.get("username")?.asString.orEmpty()
         val mediaItems = api.getAsJsonArray("mediaItems")
-            ?: throw IllegalStateException("YTDown tidak mengembalikan format apapun")
+            throw IllegalStateException("YTDown returned no media formats")
 
         val downloadItems = mutableListOf<Map<String, Any>>()
         mediaItems.forEachIndexed { index, element ->
@@ -160,7 +131,7 @@ class YtdownExtension : IExtension {
         }
 
         if (downloadItems.isEmpty()) {
-            throw IllegalStateException("YTDown tidak mengembalikan format - response tidak valid")
+            throw IllegalStateException("YTDown returned no media formats - invalid response")
         }
 
         return gson.toJson(
@@ -189,7 +160,7 @@ class YtdownExtension : IExtension {
     private fun scrapeYoutubePlaylist(playlistId: String): String {
         val data = fetchPlaylistData(playlistId)
         if (data.entries.isEmpty()) {
-            throw IllegalStateException("Playlist kosong atau tidak bisa diakses")
+            throw IllegalStateException("Playlist is empty or not accessible")
         }
 
         val firstThumbnail = "https://i.ytimg.com/vi/${data.entries.first().videoId}/hqdefault.jpg"
@@ -372,50 +343,30 @@ class YtdownExtension : IExtension {
             if (!resp.isSuccessful) {
                 throw IllegalStateException("Proxy API error: ${resp.code} ${resp.message}")
             }
-            
-            // Get raw bytes first
-            val rawBytes = resp.body?.bytes() ?: byteArrayOf()
-            if (rawBytes.isEmpty()) {
-                throw IllegalStateException("Proxy API response kosong")
-            }
-            
-            var raw = String(rawBytes, Charsets.UTF_8)
-            
-            // If response contains replacement chars (fffd), likely Brotli compressed
-            if (raw.contains('\ufffd')) {
-                raw = try {
-                    val decompressedBytes = ByteArrayOutputStream()
-                    BrotliInputStream(rawBytes.inputStream()).use { brStream ->
-                        brStream.copyTo(decompressedBytes)
-                    }
-                    decompressedBytes.toString("UTF-8")
-                } catch (e: Exception) {
-                    throw IllegalStateException("Response Brotli compressed tapi decompression gagal: ${e.message}. Coba gunakan header berbeda.")
-                }
-            }
-            
+
+            var raw = resp.body?.string().orEmpty()
             if (raw.isBlank()) {
-                throw IllegalStateException("Proxy API response kosong setelah dekompresi")
+                throw IllegalStateException("Proxy API response is empty")
             }
-            
+
             // Remove BOM if present
             if (raw.startsWith("\ufeff")) {
                 raw = raw.substring(1)
             }
-            
-            // Validate it's valid JSON start
+
+            // Validate it's valid JSON
             if (!raw.trim().startsWith("{") && !raw.trim().startsWith("[")) {
-                throw IllegalStateException("Response bukan JSON. First 200 chars: ${raw.take(200)}")
+                throw IllegalStateException("Response is not JSON. First 200 chars: ${raw.take(200)}")
             }
-            
+
             val json = runCatching {
                 JsonParser.parseString(raw).asJsonObject
             }.getOrElse { ex ->
                 throw IllegalStateException("JSON parse error: ${ex.message}. Response: ${raw.take(200)}")
             }
-            
+
             val api = json.getAsJsonObject("api")
-                ?: throw IllegalStateException("Response tidak valid: field 'api' tidak ada. Response: ${raw.take(200)}")
+                ?: throw IllegalStateException("Invalid response: missing 'api' field. Response: ${raw.take(200)}")
             val status = api.get("status")?.asString.orEmpty()
             if (status != "ok") {
                 val msg = api.get("message")?.asString ?: status

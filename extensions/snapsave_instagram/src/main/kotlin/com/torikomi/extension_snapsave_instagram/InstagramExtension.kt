@@ -7,10 +7,7 @@ import com.torikomi.browser.BrowserCompatibilityManager
 import com.torikomi.extension.IExtension
 import okhttp3.FormBody
 import okhttp3.Request
-import okhttp3.ResponseBody.Companion.toResponseBody
-import org.brotli.dec.BrotliInputStream
 import org.jsoup.Jsoup
-import java.io.ByteArrayOutputStream
 
 class InstagramExtension : IExtension {
     companion object {
@@ -28,41 +25,11 @@ class InstagramExtension : IExtension {
         writeTimeoutMs = 30_000
     )
         .addInterceptor { chain ->
-            val original = chain.request()
-            val requestWithHeaders = original.newBuilder()
+            val requestWithHeaders = chain.request().newBuilder()
                 .header("User-Agent", USER_AGENT)
-                .header("Accept-Language", "en-US,en;q=0.9")
-                .header("Accept-Encoding", "gzip, deflate, br")
                 .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .header("Cache-Control", "no-cache")
-                .header("Pragma", "no-cache")
                 .build()
             chain.proceed(requestWithHeaders)
-        }
-        .addNetworkInterceptor { chain ->
-            val response = chain.proceed(chain.request())
-            val contentEncoding = response.header("Content-Encoding").orEmpty()
-            
-            if (contentEncoding.equals("br", ignoreCase = true)) {
-                return@addNetworkInterceptor try {
-                    val responsebody = response.body ?: return@addNetworkInterceptor response
-                    val compressedBytes = responsebody.bytes()
-                    
-                    // Decompress Brotli using BrotliInputStream
-                    val decompressedBytes = ByteArrayOutputStream()
-                    BrotliInputStream(compressedBytes.inputStream()).use { brStream ->
-                        brStream.copyTo(decompressedBytes)
-                    }
-                    val decompressed = decompressedBytes.toByteArray()
-                    response.newBuilder()
-                        .body(decompressed.toResponseBody(responsebody.contentType()))
-                        .removeHeader("Content-Encoding")
-                        .build()
-                } catch (e: Exception) {
-                    response
-                }
-            }
-            response
         }
         .build()
     private val gson = Gson()

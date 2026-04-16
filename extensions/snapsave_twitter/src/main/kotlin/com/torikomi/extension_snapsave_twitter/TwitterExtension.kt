@@ -1,21 +1,16 @@
 package com.torikomi.extension_snapsave_twitter
 
 import android.content.Context
-import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.torikomi.browser.BrowserCompatibilityManager
 import com.torikomi.extension.IExtension
 import okhttp3.FormBody
 import okhttp3.Request
-import okhttp3.ResponseBody.Companion.toResponseBody
-import org.brotli.dec.BrotliInputStream
 import org.jsoup.Jsoup
-import java.io.ByteArrayOutputStream
 
 class TwitterExtension : IExtension {
     companion object {
-        private const val TAG = "TWITTER_EXT"
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
 
@@ -29,39 +24,11 @@ class TwitterExtension : IExtension {
         writeTimeoutMs = 30_000
     )
         .addInterceptor { chain ->
-            val original = chain.request()
-            val requestWithHeaders = original.newBuilder()
+            val requestWithHeaders = chain.request().newBuilder()
                 .header("User-Agent", USER_AGENT)
-                .header("Accept-Language", "en-US,en;q=0.9")
-                .header("Accept-Encoding", "gzip, deflate, br")
                 .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-                .header("Cache-Control", "no-cache")
-                .header("Pragma", "no-cache")
                 .build()
             chain.proceed(requestWithHeaders)
-        }
-        .addNetworkInterceptor { chain ->
-            val response = chain.proceed(chain.request())
-            val contentEncoding = response.header("Content-Encoding").orEmpty()
-            Log.d(TAG, "NetworkInterceptor: url=${chain.request().url} encoding=$contentEncoding status=${response.code}")
-            if (contentEncoding.equals("br", ignoreCase = true)) {
-                return@addNetworkInterceptor try {
-                    val responsebody = response.body ?: return@addNetworkInterceptor response
-                    val compressedBytes = responsebody.bytes()
-                    val decompressedBytes = ByteArrayOutputStream()
-                    BrotliInputStream(compressedBytes.inputStream()).use { it.copyTo(decompressedBytes) }
-                    val decompressed = decompressedBytes.toByteArray()
-                    Log.d(TAG, "Brotli: ${compressedBytes.size} → ${decompressed.size} bytes")
-                    response.newBuilder()
-                        .body(decompressed.toResponseBody(responsebody.contentType()))
-                        .removeHeader("Content-Encoding")
-                        .build()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Brotli decompression failed: ${e.message}", e)
-                    response
-                }
-            }
-            response
         }
         .build()
     private val gson = Gson()
@@ -79,19 +46,15 @@ class TwitterExtension : IExtension {
         url.contains("twitter.com") || url.contains("x.com")
 
     override fun scrape(context: Context, url: String, cfCookies: String?): String {
-        Log.d(TAG, "scrape() called — url=$url")
         return try {
             scrapeTwitter(url, cfCookies)
         } catch (e: Exception) {
-            Log.e(TAG, "scrape() top-level exception: ${e.message}", e)
             errorJson("SnapSave download failed: ${e.message ?: "Unknown error"}")
         }
     }
 
     private fun scrapeTwitter(url: String, cfCookies: String?): String {
-        Log.d(TAG, "getToken() start")
         val token = getToken(cfCookies)
-        Log.d(TAG, "getToken() result — blank=${token.isBlank()} value='${token.take(20)}'")
         if (token.isBlank()) throw IllegalStateException("Failed to get token from $apiBase")
 
         val formBody = FormBody.Builder()
@@ -110,27 +73,16 @@ class TwitterExtension : IExtension {
             .post(formBody)
             .build()
 
-        Log.d(TAG, "POST ${postReq.url} token=${token.take(10)}…")
         client.newCall(postReq).execute().use { postResp ->
-            val statusLine = "${postResp.code} ${postResp.message}"
-            Log.d(TAG, "POST response — $statusLine")
             if (!postResp.isSuccessful) {
-                val body = postResp.body?.string().orEmpty()
-                Log.e(TAG, "POST FAILED — $statusLine — body: ${body.take(300)}")
-                throw IllegalStateException("API returned $statusLine")
+                throw IllegalStateException("API returned ${postResp.code} ${postResp.message}")
             }
             val raw = postResp.body?.string().orEmpty()
-            Log.d(TAG, "POST raw body (first 500): ${raw.take(500)}")
             if (raw.isEmpty()) throw IllegalStateException("Empty response from API")
 
             val html = extractHtmlData(raw)
-            Log.d(TAG, "extractHtmlData — blank=${html.isBlank()} length=${html.length}")
-            Log.d(TAG, "HTML snippet (first 500): ${html.take(500)}")
             if (html.isBlank()) throw IllegalStateException("Empty HTML data in response")
-
-            val result = parseTwitterData(html)
-            Log.d(TAG, "parseTwitterData result: $result")
-            return result
+            return parseTwitterData(html)
         }
     }
 
@@ -142,31 +94,17 @@ class TwitterExtension : IExtension {
             .build()
 
         return client.newCall(getReq).execute().use { resp ->
-            Log.d(TAG, "getToken response — ${resp.code} ${resp.message}")
-            if (!resp.isSuccessful) {
-                Log.e(TAG, "getToken FAILED — ${resp.code}")
-                return@use ""
-            }
+            if (!resp.isSuccessful) return@use ""
             val html = resp.body?.string().orEmpty()
-            Log.d(TAG, "getToken HTML length=${html.length}")
-            val document = Jsoup.parse(html)
-            val token = document.selectFirst("input[name=token]")?.attr("value").orEmpty()
-            Log.d(TAG, "getToken token found=${token.isNotBlank()}")
-            token
+            Jsoup.parse(html).selectFirst("input[name=token]")?.attr("value").orEmpty()
         }
     }
 
     private fun extractHtmlData(raw: String): String {
         if (raw.isBlank()) return ""
         return runCatching {
-            val json = gson.fromJson(raw, JsonObject::class.java)
-            val errorField = json.get("error")
-            Log.d(TAG, "extractHtmlData — error field: $errorField")
-            json.get("data")?.asString.orEmpty()
-        }.getOrElse {
-            Log.e(TAG, "extractHtmlData — JSON parse failed: ${it.message}, returning raw")
-            raw
-        }
+            gson.fromJson(raw, JsonObject::class.java).get("data")?.asString.orEmpty()
+        }.getOrElse { raw }
     }
 
     private fun parseTwitterData(htmlContent: String): String {
@@ -186,9 +124,6 @@ class TwitterExtension : IExtension {
             ?.text()?.trim()?.lowercase().orEmpty()
         val isPhoto = buttonText.contains("photo")
 
-        Log.d(TAG, "parse — author='$authorName' title='${title.take(60)}' thumbnail='$thumbnail'")
-        Log.d(TAG, "parse — desktopHref='$desktopHref' mobileHref='$mobileHref' buttonText='$buttonText' isPhoto=$isPhoto")
-
         val downloadItems = if (!isPhoto && downloadUrl.isNotBlank()) {
             listOf(mapOf("key" to "video_hd", "label" to "Video HD", "type" to "video",
                          "url" to downloadUrl, "mimeType" to "video/mp4", "quality" to "HD"))
@@ -202,8 +137,6 @@ class TwitterExtension : IExtension {
             }
             if (photoUrl.isNotBlank()) listOf(photoUrl) else emptyList()
         } else emptyList()
-
-        Log.d(TAG, "parse — downloadItems=${downloadItems.size} images=${images.size}")
 
         return gson.toJson(mapOf(
             "extensionId"    to "twitter",

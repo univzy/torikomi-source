@@ -2,18 +2,22 @@ package com.torikomi.browser
 
 import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.TlsVersion
+import org.brotli.dec.BrotliInputStream
+import java.io.ByteArrayOutputStream
 import java.security.KeyStore
 import java.util.concurrent.TimeUnit
+import java.util.zip.GZIPInputStream
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 
 /**
- * Manager untuk mengkonfigurasi OkHttpClient agar kompatibel dengan browser modern
- * (Chrome/Firefox) dengan proper TLS dan cipher suite configuration.
- * 
- * Bukan merupakan bypass Cloudflare, hanya untuk memastikan request terlihat
- * seperti dari browser asli dengan header dan TLS configuration yang sesuai.
+ * Configures OkHttpClient to be compatible with modern browsers (Chrome/Firefox)
+ * with proper TLS and cipher suite configuration.
+ *
+ * This is not a Cloudflare bypass — it only ensures requests look like they
+ * come from a real browser with matching headers and TLS settings.
  */
 object BrowserCompatibilityManager {
 
@@ -27,20 +31,20 @@ object BrowserCompatibilityManager {
             .readTimeout(readTimeoutMs, TimeUnit.MILLISECONDS)
             .writeTimeout(writeTimeoutMs, TimeUnit.MILLISECONDS)
 
-        // Configure SSLSocketFactory dengan proper certificate validation
+        // Configure SSLSocketFactory with proper certificate validation
         try {
-            // Gunakan default TrustManagerFactory dengan system certificates
+            // Use system default TrustManagerFactory
             val trustManagerFactory = TrustManagerFactory.getInstance(
                 TrustManagerFactory.getDefaultAlgorithm()
             )
             trustManagerFactory.init(null as KeyStore?)
             val trustManagers = trustManagerFactory.trustManagers
-            
-            // Buat SSLContext dengan modern TLS versions
+
+            // Build SSLContext with modern TLS versions
             val sslContext = SSLContext.getInstance("TLS")
             sslContext.init(null, trustManagers, null)
-            
-            // Configure dengan explicit cipher suites yang mirip dengan modern browsers
+
+            // Restrict to cipher suites used by modern browsers
             val modernTlsSpec = ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
                 .tlsVersions(TlsVersion.TLS_1_2, TlsVersion.TLS_1_3)
                 .cipherSuites(
@@ -57,8 +61,58 @@ object BrowserCompatibilityManager {
             builder.connectionSpecs(listOf(modernTlsSpec, ConnectionSpec.CLEARTEXT))
             
         } catch (e: Exception) {
-            // Fallback: gunakan default OkHttp TLS configuration
+            // Fallback to default OkHttp TLS configuration
             e.printStackTrace()
+        }
+
+        // Application interceptor: set Accept-Encoding + common browser headers.
+        // Setting Accept-Encoding here disables OkHttp's automatic gzip decompression,
+        // so we handle gzip and brotli manually in the network interceptor below.
+        builder.addInterceptor { chain ->
+            val req = chain.request().newBuilder()
+                .header("Accept-Encoding", "gzip, deflate, br")
+                .header("Accept-Language", "en-US,en;q=0.9")
+                .header("Cache-Control", "no-cache")
+                .header("Pragma", "no-cache")
+                .build()
+            chain.proceed(req)
+        }
+
+        // Network interceptor: transparently decompress gzip and brotli responses.
+        builder.addNetworkInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            val encoding = response.header("Content-Encoding").orEmpty()
+            when {
+                encoding.equals("br", ignoreCase = true) -> {
+                    try {
+                        val body = response.body ?: return@addNetworkInterceptor response
+                        val compressed = body.bytes()
+                        val out = ByteArrayOutputStream()
+                        BrotliInputStream(compressed.inputStream()).use { it.copyTo(out) }
+                        response.newBuilder()
+                            .body(out.toByteArray().toResponseBody(body.contentType()))
+                            .removeHeader("Content-Encoding")
+                            .build()
+                    } catch (e: Exception) {
+                        response
+                    }
+                }
+                encoding.equals("gzip", ignoreCase = true) -> {
+                    try {
+                        val body = response.body ?: return@addNetworkInterceptor response
+                        val compressed = body.bytes()
+                        val out = ByteArrayOutputStream()
+                        GZIPInputStream(compressed.inputStream()).use { it.copyTo(out) }
+                        response.newBuilder()
+                            .body(out.toByteArray().toResponseBody(body.contentType()))
+                            .removeHeader("Content-Encoding")
+                            .build()
+                    } catch (e: Exception) {
+                        response
+                    }
+                }
+                else -> response
+            }
         }
 
         return builder

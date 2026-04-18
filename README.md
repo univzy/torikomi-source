@@ -1,105 +1,221 @@
-# Torikomi Extension Source
+<p align="center">
+  <img src="torikomi.png" width="250" alt="Torikomi" />
+</p>
 
-Source code and build system for Torikomi extension APKs.
-
-This repository is the **build source**. Published APK files and catalog entries live in [`torikomi-extensions`](https://github.com/univzy/torikomi-extensions).
+<h1 align="center">Torikomi Extension Source</h1>
+<p align="center">
+    Source code and build system for all Torikomi extension APKs.
+    <br>
+    This repository is the <b>build source</b>. Compiled APKs and catalog entries are stored in [`torikomi-extensions`](https://github.com/univzy/torikomi-extensions).
+    <br>
+    Each extension is a minimal Android app module that implements the `IExtension` interface and exposes scraping logic via `ContentProvider` IPC.
+</p>
 
 ## Architecture
 
-Each extension is a minimal Android app module (~1–2 MB) that exposes scraping via `ContentProvider` IPC.
+Each extension is a minimal Android app module (~1–2 MB) that exposes scraping logic via `ContentProvider` IPC.
 
-```text
-Torikomi App -> content://torikomi.extension.<id>/scrape?url=...
+```
+Torikomi App  ──►  content://torikomi.extension.<id>/scrape?url=...&cfCookies=...
+                                    │
+                              ExtensionProvider
+                                    │
+                            <Platform>Extension.kt
+                                    │
+                         JSON payload (ScrapeResult)
+                                    │
+                   ◄──────────── Torikomi App
 ```
 
-Workflow:
-1. App discovers the extension package via `AndroidManifest.xml` metadata.
+**Workflow:**
+1. App discovers installed extensions via `AndroidManifest.xml` metadata.
 2. App invokes the extension's `ContentProvider` with URL + optional CF cookies.
 3. Extension scraper returns a JSON payload.
-4. App parses the payload into download options and presents them in the template UI.
+4. App parses the payload into download options and renders them in the UI template.
 
-## Active Modules
+## Available Extensions
 
-| Module ID | Platform | Package | APK |
-|---|---|---|---|
-| `musicaldown` | TikTok | `com.torikomi.extension_musicaldown` | `torikomi-multi.musicaldown-v1.0.0.apk` |
-| `snapsave_twitter` | Twitter/X | `com.torikomi.extension_snapsave_twitter` | `torikomi-multi.snapsave_twitter-v1.0.0.apk` |
-| `snapsave_instagram` | Instagram | `com.torikomi.extension_snapsave_instagram` | `torikomi-multi.snapsave_instagram-v1.0.0.apk` |
-| `yt1s` | YouTube | `com.torikomi.extension_yt1s` | `torikomi-multi.yt1s-v1.0.0.apk` |
-
-## Build
-
-Requirements:
-- Android SDK installed
-- JDK 11+
-- Gradle wrapper files present (`gradlew` / `gradlew.bat`)
-
-Build all extensions and copy APKs to the catalog folder:
-
-```powershell
-.\build_all.ps1 -CatalogPath "..\torikomi-extensions"
-```
-
-Build a single extension:
-
-```powershell
-.\gradlew.bat :extensions:musicaldown:assembleRelease
-.\gradlew.bat :extensions:snapsave_twitter:assembleRelease
-.\gradlew.bat :extensions:snapsave_instagram:assembleRelease
-.\gradlew.bat :extensions:yt1s:assembleRelease
-```
+| Module ID | Platform | Package | Downloader | APK |
+|---|---|---|---|---|
+| `musicaldown` | TikTok | `com.torikomi.extension_musicaldown` | MusicalDown | `torikomi-multi.musicaldown-v1.0.0.apk` |
+| `snapsave_twitter` | Twitter/X | `com.torikomi.extension_snapsave_twitter` | SnapSave | `torikomi-multi.snapsave_twitter-v1.0.0.apk` |
+| `snapsave_instagram` | Instagram | `com.torikomi.extension_snapsave_instagram` | SnapSave | `torikomi-multi.snapsave_instagram-v1.0.0.apk` |
+| `snapsave_threads` | Threads | `com.torikomi.extension_snapsave_threads` | SnapSave | `torikomi-multi.snapsave_threads-v1.0.0.apk` |
+| `snapsave_facebook` | Facebook | `com.torikomi.extension_snapsave_facebook` | SnapSave | `torikomi-multi.snapsave_facebook-v1.0.0.apk` |
+| `ytdown` | YouTube | `com.torikomi.extension_ytdown` | YTDown | `torikomi-multi.ytdown-v1.0.0.apk` |
+| `spotmate` | Spotify | `com.torikomi.extension_spotmate` | Spotmate Downloader | `torikomi-multi.spotmate-v1.0.0.apk` |
 
 ## Repository Layout
 
 ```text
 torikomi-source/
-|-- build_all.ps1          # Build + copy all extensions to catalog
-|-- settings.gradle.kts    # Multi-module project definition
-|-- common/
-|   `-- kotlin/com/torikomi/extension/
-|       |-- IExtension.kt  # Shared scraper interface
-|       `-- ScrapeResult.kt
-`-- extensions/
-    |-- musicaldown/
-    |-- snapsave_twitter/
-    |-- snapsave_instagram/
-    `-- yt1s/
+├── build_all.ps1           # Build + copy all extensions to the catalog
+├── settings.gradle.kts     # Multi-module project definition
+├── common/
+│   └── kotlin/com/torikomi/
+│       ├── extension/
+│       │   └── IExtension.kt       # Shared scraper interface
+│       └── browser/
+│           └── BrowserCompatibilityManager.kt  # OkHttp TLS helper
+└── extensions/
+    ├── musicaldown/
+    ├── snapsave_twitter/
+    ├── snapsave_instagram/
+    ├── snapsave_threads/
+    ├── snapsave_facebook/
+    ├── ytdown/
+    └── spotmate/
 ```
 
-Each extension module layout:
+Each extension module follows this layout:
 
 ```text
 extensions/<id>/
-|-- android/           # Android app wrapper (Manifest, ContentProvider)
-|   `-- app/src/main/
-|       |-- AndroidManifest.xml
-|       `-- kotlin/com/torikomi/extension_<id>/
-|           |-- ExtensionProvider.kt
-|           `-- MainActivity.kt
-`-- src/main/kotlin/   # Scraper business logic
-    `-- com/torikomi/extension_<id>/<Platform>Extension.kt
+├── proguard-rules.pro
+├── src/main/kotlin/com/torikomi/extension_<id>/
+│   └── <Platform>Extension.kt     # Core scraping logic
+└── android/
+    ├── build.gradle.kts
+    ├── settings.gradle.kts
+    └── app/
+        ├── build.gradle
+        └── src/main/
+            ├── AndroidManifest.xml
+            ├── res/drawable/icon_<id>.png
+            └── kotlin/com/torikomi/extension_<id>/
+                ├── ExtensionProvider.kt   # ContentProvider IPC entry point
+                └── MainActivity.kt        # Empty activity (required by Flutter engine)
 ```
 
-## Extension Manifest Metadata
+## IExtension Interface
 
-Each `AndroidManifest.xml` declares these metadata keys under the `ContentProvider`:
+All extensions implement the `IExtension` interface:
+
+```kotlin
+interface IExtension {
+    fun getId(): String                // Unique extension ID, e.g. "spotmate"
+    fun getPlatformId(): String        // Platform ID, e.g. "spotify"
+    fun getPlatformName(): String      // Platform display name, e.g. "Spotify"
+    fun getVersion(): String           // Semver version
+    fun getDownloaderName(): String    // Downloader name
+    fun getDownloaderDescription(): String
+    fun canHandle(url: String): Boolean
+    fun scrape(context: Context, url: String, cfCookies: String? = null): String
+}
+```
+
+The `scrape()` function returns a JSON string with the following structure:
+
+```json
+{
+  "extensionId": "spotmate",
+  "platform": "spotify",
+  "platformName": "Spotify",
+  "title": "TWICE - SIGNAL",
+  "author": "TWICE",
+  "authorName": "TWICE",
+  "duration": 196,
+  "thumbnail": "https://i.scdn.co/image/...",
+  "downloadItems": [
+    {
+      "key": "audio_mp3",
+      "label": "Audio MP3",
+      "type": "audio",
+      "url": "https://...",
+      "mimeType": "audio/mpeg",
+      "quality": "MP3"
+    }
+  ],
+  "images": []
+}
+```
+
+For playlists/albums, item `type` is `"playlist_item"` and `url` contains an individual track link.
+
+## AndroidManifest Metadata
+
+Each `AndroidManifest.xml` declares the following metadata:
 
 | Key | Example Value |
 |---|---|
-| `torikomi.extension.id` | `tiktok` |
-| `torikomi.extension.platform` | `tiktok` |
-| `torikomi.extension.platformName` | `TikTok` |
+| `torikomi.extension` | `true` |
+| `torikomi.extension.id` | `spotmate` |
+| `torikomi.extension.platform` | `spotify` |
+| `torikomi.extension.platformName` | `Spotify` |
 | `torikomi.extension.version` | `1.0.0` |
-| `torikomi.extension.downloader` | `MusicalDown` |
-| `torikomi.extension.description` | `Downloader MusicalDown ...` |
+| `torikomi.extension.downloader` | `Spotmate Downloader` |
+| `torikomi.extension.description` | `Download Spotify tracks...` |
+| `torikomi.extension.urlPlaceholder` | `https://open.spotify.com/track/...` |
 | `torikomi.extension.lang` | `multi` |
-| `torikomi.extension.color` | `#000000` |
+| `torikomi.extension.icon` | `spotmate` |
+| `torikomi.extension.color` | `#1DB954` |
+| `flutterEmbedding` | `2` |
+
+## Build Requirements
+
+- Android SDK (compileSdk 34, minSdk 23)
+- JDK 11+
+- Gradle wrapper (`gradlew` / `gradlew.bat`) — available in each extension's `android/` folder
+- `ANDROID_SDK_ROOT` or `ANDROID_HOME` environment variable, **or** a `local.properties` file with `sdk.dir=<path>`
+
+## Build
+
+### Build all extensions at once
+
+```powershell
+.\build_all.ps1 -CatalogPath "..\torikomi-extensions"
+```
+
+APKs are compiled and automatically copied to `torikomi-extensions/apk/`.
+
+### Build a specific extension
+
+```powershell
+.\build_all.ps1 -Extensions "spotmate" -CatalogPath "..\torikomi-extensions"
+```
+
+### Manual Gradle build
+
+```powershell
+.\gradlew.bat :extensions:spotmate:assembleRelease
+.\gradlew.bat :extensions:musicaldown:assembleRelease
+.\gradlew.bat :extensions:ytdown:assembleRelease
+```
 
 ## Adding a New Extension
 
-1. Copy an existing module under `extensions/` as a template.
-2. Update `applicationId`, `package`, `android:authorities`, and all `meta-data` values in `AndroidManifest.xml`.
-3. Implement the scraper logic in `src/main/kotlin/…/<Platform>Extension.kt`.
-4. Register the new module in `settings.gradle.kts` and the `$AllExtensions` array in `build_all.ps1`.
-5. Run `build_all.ps1 -CatalogPath "..\torikomi-extensions"` to build and publish the APK.
-6. Add a new entry to `torikomi-extensions/index.json` and regenerate `index.min.json`.
+1. Copy an existing module as a template:
+   ```powershell
+   Copy-Item -Recurse extensions\musicaldown extensions\new_ext
+   ```
+2. Update `extensions\new_ext\android\app\build.gradle`:
+   - `namespace`, `applicationId` → `com.torikomi.extension_new_ext`
+3. Update `AndroidManifest.xml`:
+   - `android:authorities` → `torikomi.extension.new_ext`
+   - All `meta-data` values (`id`, `platform`, `platformName`, `downloader`, `color`, etc.)
+   - Replace `android:icon` with the new icon
+4. Rename the class in `ExtensionProvider.kt` and create `<Platform>Extension.kt` in `src/main/kotlin/`.
+5. Add the icon to `android/app/src/main/res/drawable/icon_new_ext.png`.
+6. Register in `settings.gradle.kts`:
+   ```kotlin
+   val extensionIds = listOf(
+       // ... existing extensions
+       "new_ext"
+   )
+   ```
+7. Register in the `$AllExtensions` array in `build_all.ps1`:
+   ```powershell
+   @{ id = "new_ext"; lang = "multi"; version = "1.0.0" }
+   ```
+8. Build: `.\build_all.ps1 -Extensions "new_ext" -CatalogPath "..\torikomi-extensions"`
+9. Add a new entry to `torikomi-extensions/index.json` and regenerate `index.min.json`.
+
+## CF Cookies (Cloudflare)
+
+Some extensions (musicaldown, spotmate) require a `cf_clearance` cookie to bypass Cloudflare. This cookie is passed by the main app as the `cfCookies` parameter to the `ContentProvider`:
+
+```
+content://torikomi.extension.spotmate/scrape?url=...&cfCookies=cf_clearance%3D...
+```
+
+The extension is responsible for including it when making HTTP requests to the target site.

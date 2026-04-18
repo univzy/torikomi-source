@@ -5,7 +5,7 @@
 
     <application
         android:icon="@drawable/icon_snapsave_threads"
-        android:label="Torikomi: Threads">
+        android:label="Torikomi: SnapSave Threads">
 
         <activity
             android:name=".MainActivity"

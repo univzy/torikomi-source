@@ -23,7 +23,8 @@ val extensionIds = listOf(
     "snapsave_instagram",
     "snapsave_facebook",
     "snapsave_threads",
-    "ytdown"
+    "ytdown",
+    "spotmate"
 )
 
 extensionIds.forEach { id ->

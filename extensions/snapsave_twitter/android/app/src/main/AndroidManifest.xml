@@ -5,7 +5,7 @@
 
     <application
         android:icon="@drawable/icon_snapsave_twitter"
-        android:label="Torikomi: Twitter">
+        android:label="Torikomi: SnapSave Twitter">
 
         <activity
             android:name=".MainActivity"

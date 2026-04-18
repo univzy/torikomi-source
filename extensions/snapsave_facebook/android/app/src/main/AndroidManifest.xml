@@ -5,7 +5,7 @@
 
     <application
         android:icon="@drawable/icon_snapsave_facebook"
-        android:label="Torikomi: Facebook">
+        android:label="Torikomi: SnapSave Facebook">
 
         <activity
             android:name=".MainActivity"

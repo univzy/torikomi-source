@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:icon="@drawable/icon_douyin"
+        android:label="Torikomi: Douyin">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <provider
+            android:name=".ExtensionProvider"
+            android:authorities="torikomi.extension.douyin"
+            android:exported="true" />
+
+        <meta-data android:name="torikomi.extension" android:value="true" />
+        <meta-data android:name="torikomi.extension.id" android:value="douyin" />
+        <meta-data android:name="torikomi.extension.platform" android:value="douyin" />
+        <meta-data android:name="torikomi.extension.platformName" android:value="Douyin" />
+        <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
+        <meta-data android:name="torikomi.extension.downloader" android:value="Douyin" />
+        <meta-data android:name="torikomi.extension.description" android:value="Douyin downloader for video and image posts." />
+        <meta-data android:name="torikomi.extension.urlPlaceholder" android:value="https://v.douyin.com/mbZjLdTTYss/" />
+        <meta-data android:name="torikomi.extension.lang" android:value="multi" />
+        <meta-data android:name="torikomi.extension.icon" android:value="douyin" />
+        <meta-data android:name="torikomi.extension.color" android:value="#111111" />
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+
+</manifest>

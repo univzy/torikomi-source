@@ -1,0 +1,2 @@
+-keep class com.torikomi.extension_douyin.** { *; }
+-keep interface com.torikomi.extension.** { *; }

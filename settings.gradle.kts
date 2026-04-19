@@ -19,6 +19,7 @@ rootProject.name = "torikomi-extensions"
 // Include available extension modules
 val extensionIds = listOf(
     "musicaldown",
+    "douyin",
     "snapsave_twitter",
     "snapsave_instagram",
     "snapsave_facebook",

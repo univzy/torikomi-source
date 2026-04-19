@@ -28,6 +28,7 @@ Torikomi App  ──►  content://torikomi.extension.<id>/scrape?url=...&cfCook
 ```
 
 **Workflow:**
+
 1. App discovers installed extensions via `AndroidManifest.xml` metadata.
 2. App invokes the extension's `ContentProvider` with URL + optional CF cookies.
 3. Extension scraper returns a JSON payload.
@@ -35,15 +36,16 @@ Torikomi App  ──►  content://torikomi.extension.<id>/scrape?url=...&cfCook
 
 ## Available Extensions
 
-| Module ID | Platform | Package | Downloader | APK |
-|---|---|---|---|---|
-| `musicaldown` | TikTok | `com.torikomi.extension_musicaldown` | MusicalDown | `torikomi-multi.musicaldown-v1.0.0.apk` |
-| `snapsave_twitter` | Twitter/X | `com.torikomi.extension_snapsave_twitter` | SnapSave | `torikomi-multi.snapsave_twitter-v1.0.0.apk` |
-| `snapsave_instagram` | Instagram | `com.torikomi.extension_snapsave_instagram` | SnapSave | `torikomi-multi.snapsave_instagram-v1.0.0.apk` |
-| `snapsave_threads` | Threads | `com.torikomi.extension_snapsave_threads` | SnapSave | `torikomi-multi.snapsave_threads-v1.0.0.apk` |
-| `snapsave_facebook` | Facebook | `com.torikomi.extension_snapsave_facebook` | SnapSave | `torikomi-multi.snapsave_facebook-v1.0.0.apk` |
-| `ytdown` | YouTube | `com.torikomi.extension_ytdown` | YTDown | `torikomi-multi.ytdown-v1.0.0.apk` |
-| `spotmate` | Spotify | `com.torikomi.extension_spotmate` | Spotmate Downloader | `torikomi-multi.spotmate-v1.0.0.apk` |
+| Module ID            | Platform  | Package                                     | Downloader          | APK                                            |
+| -------------------- | --------- | ------------------------------------------- | ------------------- | ---------------------------------------------- |
+| `musicaldown`        | TikTok    | `com.torikomi.extension_musicaldown`        | MusicalDown         | `torikomi-multi.musicaldown-v1.0.0.apk`        |
+| `douyin`             | Douyin    | `com.torikomi.extension_douyin`             | Douyin              | `torikomi-multi.douyin-v1.0.0.apk`             |
+| `snapsave_twitter`   | Twitter/X | `com.torikomi.extension_snapsave_twitter`   | SnapSave            | `torikomi-multi.snapsave_twitter-v1.0.0.apk`   |
+| `snapsave_instagram` | Instagram | `com.torikomi.extension_snapsave_instagram` | SnapSave            | `torikomi-multi.snapsave_instagram-v1.0.0.apk` |
+| `snapsave_threads`   | Threads   | `com.torikomi.extension_snapsave_threads`   | SnapSave            | `torikomi-multi.snapsave_threads-v1.0.0.apk`   |
+| `snapsave_facebook`  | Facebook  | `com.torikomi.extension_snapsave_facebook`  | SnapSave            | `torikomi-multi.snapsave_facebook-v1.0.0.apk`  |
+| `ytdown`             | YouTube   | `com.torikomi.extension_ytdown`             | YTDown              | `torikomi-multi.ytdown-v1.0.0.apk`             |
+| `spotmate`           | Spotify   | `com.torikomi.extension_spotmate`           | Spotmate Downloader | `torikomi-multi.spotmate-v1.0.0.apk`           |
 
 ## Repository Layout
 
@@ -59,6 +61,7 @@ torikomi-source/
 │           └── BrowserCompatibilityManager.kt  # OkHttp TLS helper
 └── extensions/
     ├── musicaldown/
+    ├── douyin/
     ├── snapsave_twitter/
     ├── snapsave_instagram/
     ├── snapsave_threads/
@@ -136,20 +139,20 @@ For playlists/albums, item `type` is `"playlist_item"` and `url` contains an ind
 
 Each `AndroidManifest.xml` declares the following metadata:
 
-| Key | Example Value |
-|---|---|
-| `torikomi.extension` | `true` |
-| `torikomi.extension.id` | `spotmate` |
-| `torikomi.extension.platform` | `spotify` |
-| `torikomi.extension.platformName` | `Spotify` |
-| `torikomi.extension.version` | `1.0.0` |
-| `torikomi.extension.downloader` | `Spotmate Downloader` |
-| `torikomi.extension.description` | `Download Spotify tracks...` |
+| Key                                 | Example Value                        |
+| ----------------------------------- | ------------------------------------ |
+| `torikomi.extension`                | `true`                               |
+| `torikomi.extension.id`             | `spotmate`                           |
+| `torikomi.extension.platform`       | `spotify`                            |
+| `torikomi.extension.platformName`   | `Spotify`                            |
+| `torikomi.extension.version`        | `1.0.0`                              |
+| `torikomi.extension.downloader`     | `Spotmate Downloader`                |
+| `torikomi.extension.description`    | `Download Spotify tracks...`         |
 | `torikomi.extension.urlPlaceholder` | `https://open.spotify.com/track/...` |
-| `torikomi.extension.lang` | `multi` |
-| `torikomi.extension.icon` | `spotmate` |
-| `torikomi.extension.color` | `#1DB954` |
-| `flutterEmbedding` | `2` |
+| `torikomi.extension.lang`           | `multi`                              |
+| `torikomi.extension.icon`           | `spotmate`                           |
+| `torikomi.extension.color`          | `#1DB954`                            |
+| `flutterEmbedding`                  | `2`                                  |
 
 ## Build Requirements
 
@@ -179,6 +182,7 @@ APKs are compiled and automatically copied to `torikomi-extensions/apk/`.
 ```powershell
 .\gradlew.bat :extensions:spotmate:assembleRelease
 .\gradlew.bat :extensions:musicaldown:assembleRelease
+.\gradlew.bat :extensions:douyin:assembleRelease
 .\gradlew.bat :extensions:ytdown:assembleRelease
 ```
 

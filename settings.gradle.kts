@@ -25,7 +25,8 @@ val extensionIds = listOf(
     "snapsave_facebook",
     "snapsave_threads",
     "ytdown",
-    "spotmate"
+    "spotmate",
+    "whatsapp_status"
 )
 
 extensionIds.forEach { id ->

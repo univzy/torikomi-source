@@ -1,0 +1,2 @@
+-keep class com.torikomi.extension_whatsapp_status.** { *; }
+-keep interface com.torikomi.extension.** { *; }

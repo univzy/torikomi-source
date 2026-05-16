@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:icon="@drawable/whatsapp_icon"
+        android:label="@string/app_name">
+
+        <provider
+            android:name=".ExtensionProvider"
+            android:authorities="torikomi.extension.whatsapp_status"
+            android:exported="true" />
+
+        <meta-data android:name="torikomi.extension" android:value="true" />
+        <meta-data android:name="torikomi.extension.id" android:value="whatsapp_status" />
+        <meta-data android:name="torikomi.extension.platform" android:value="whatsapp" />
+        <meta-data android:name="torikomi.extension.platformName" android:value="WhatsApp" />
+        <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
+        <meta-data android:name="torikomi.extension.downloader" android:value="WhatsApp Status" />
+        <meta-data android:name="torikomi.extension.description" android:value="WhatsApp Status downloader (local statuses)." />
+        <meta-data android:name="torikomi.extension.urlPlaceholder" android:value="Open extension app" />
+        <meta-data android:name="torikomi.extension.lang" android:value="local" />
+        <meta-data android:name="torikomi.extension.icon" android:value="icon-whatsapp" />
+        <meta-data android:name="torikomi.extension.color" android:value="#25D366" />
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+
+</manifest>

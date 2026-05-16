@@ -4,34 +4,34 @@ plugins {
 }
 
 android {
-    namespace "com.torikomi.extension_douyin"
-    compileSdk 34
+    namespace = "com.torikomi.extension_douyin"
+    compileSdk = 34
     defaultConfig {
-        applicationId "com.torikomi.extension_douyin"
-        minSdk 23
-        targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        applicationId = "com.torikomi.extension_douyin"
+        minSdk = 23
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
-            minifyEnabled false
-            shrinkResources false
+            signingConfig = signingConfigs.debug
+            minifyEnabled = false
+            shrinkResources = false
         }
     }
 
     lint {
-        checkReleaseBuilds false
-        abortOnError false
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 }
 
 android {
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {

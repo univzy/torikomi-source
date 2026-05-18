@@ -9,8 +9,12 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="false"
-            android:theme="@android:style/Theme.NoDisplay" />
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="com.torikomi.extension.action.DISCOVERY" />
+            </intent-filter>
+        </activity>
 
         <provider
             android:name=".ExtensionProvider"
@@ -21,7 +25,7 @@
         <meta-data android:name="torikomi.extension.id" android:value="douyin" />
         <meta-data android:name="torikomi.extension.platform" android:value="douyin" />
         <meta-data android:name="torikomi.extension.platformName" android:value="Douyin" />
-        <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
+        <meta-data android:name="torikomi.extension.version" android:value="1.0.1" />
         <meta-data android:name="torikomi.extension.downloader" android:value="Douyin" />
         <meta-data android:name="torikomi.extension.description" android:value="Douyin downloader for video and image posts." />
         <meta-data android:name="torikomi.extension.urlPlaceholder" android:value="https://v.douyin.com/mbZjLdTTYss/" />
@@ -32,3 +36,4 @@
     </application>
 
 </manifest>
+

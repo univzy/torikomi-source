@@ -22,7 +22,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# ── Ensure Android SDK location for Gradle builds ───────────────────────────
 function Ensure-LocalProperties {
     param([string]$ProjectRoot)
 
@@ -45,10 +44,8 @@ function Ensure-LocalProperties {
     Write-Host "[bootstrap] Created local.properties with sdk.dir"
 }
 
-# ── Reference project (used to copy gradle wrapper binaries) ─────────────────
-$ReferenceAndroid = Join-Path $PSScriptRoot "..\torikomi-kotlin"
+$ReferenceAndroid = Join-Path $PSScriptRoot "..\torikomi"
 
-# ── Bootstrap a minimal Android project structure (Kotlin only) ──────────────
 function Initialize-AndroidProject {
     param([string]$AndroidDir)
 
@@ -189,26 +186,26 @@ zipStorePath=wrapper/dists
     }
 }
 
-# ── Extension manifest ───────────────────────────────────────────────────────
+# Extension manifest 
 $AllExtensions = @(
-    @{ id = "musicaldown"; lang = "multi"; version = "1.0.0" },
-    @{ id = "douyin"; lang = "multi"; version = "1.0.0" },
-    @{ id = "snapsave_twitter"; lang = "multi"; version = "1.0.0" },
-    @{ id = "snapsave_instagram"; lang = "multi"; version = "1.0.0" },
-    @{ id = "snapsave_facebook"; lang = "multi"; version = "1.0.0" },
-    @{ id = "snapsave_threads"; lang = "multi"; version = "1.0.0" },
-    @{ id = "ytdown"; lang = "multi"; version = "1.0.0" },
-    @{ id = "spotmate"; lang = "multi"; version = "1.0.0" },
-    @{ id = "whatsapp_status"; lang = "local"; version = "1.0.0" }
+    @{ id = "musicaldown"; lang = "multi"; version = "1.0.1" },
+    @{ id = "douyin"; lang = "multi"; version = "1.0.1" },
+    @{ id = "snapsave_twitter"; lang = "multi"; version = "1.0.1" },
+    @{ id = "snapsave_instagram"; lang = "multi"; version = "1.0.1" },
+    @{ id = "snapsave_facebook"; lang = "multi"; version = "1.0.1" },
+    @{ id = "snapsave_threads"; lang = "multi"; version = "1.0.1" },
+    @{ id = "ytdown"; lang = "multi"; version = "1.0.1" },
+    @{ id = "spotmate"; lang = "multi"; version = "1.0.1" },
+    @{ id = "whatsapp_status"; lang = "local"; version = "1.0.1" }
 )
 
-# ── Filter by requested extensions ───────────────────────────────────────────
+# Filter by requested extensions
 if ($Extensions -ne "") {
     $requested = $Extensions -split "," | ForEach-Object { $_.Trim() }
     $AllExtensions = $AllExtensions | Where-Object { $requested -contains $_.id }
 }
 
-# ── Resolve catalog apk directory ─────────────────────────────────────────────
+# Resolve catalog apk directory 
 $CatalogRoot = if ($CatalogPath -ne "") { $CatalogPath } else { $PSScriptRoot }
 $CatalogApkDir = Join-Path $CatalogRoot "apk"
 if (-not (Test-Path $CatalogApkDir)) {
@@ -217,7 +214,7 @@ if (-not (Test-Path $CatalogApkDir)) {
 
 Ensure-LocalProperties -ProjectRoot $PSScriptRoot
 
-# ── Build loop ────────────────────────────────────────────────────────────────
+# Build loop 
 $Success = @()
 $Failed  = @()
 
@@ -240,7 +237,7 @@ foreach ($ext in $AllExtensions) {
         $rootGradlew = Join-Path $PSScriptRoot "gradlew.bat"
         
         if (-not (Test-Path $rootGradlew)) {
-            throw "Gradle wrapper not found at $rootGradlew. Copy from torikomi-kotlin/."
+            throw "Gradle wrapper not found at $rootGradlew. Copy from torikomi/."
         }
         
         # Build from root, specifying the extension module
@@ -294,7 +291,7 @@ foreach ($ext in $AllExtensions) {
     }
 }
 
-# ── Summary ───────────────────────────────────────────────────────────────────
+# Summary 
 $successList = $Success -join ", "
 $failedList  = $Failed  -join ", "
 Write-Host "`n--- Build Summary ---" -ForegroundColor Yellow

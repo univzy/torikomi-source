@@ -7,11 +7,15 @@
         android:icon="@drawable/icon_musicaldown"
         android:label="Torikomi: TikTok">
 
-        <!-- Silent activity required by Flutter engine -->
+        <!-- Silent activity; declared exported so the main app can <queries>-discover it. -->
         <activity
             android:name=".MainActivity"
-            android:exported="false"
-            android:theme="@android:style/Theme.NoDisplay" />
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="com.torikomi.extension.action.DISCOVERY" />
+            </intent-filter>
+        </activity>
 
         <!-- IPC entry-point for the main app -->
         <provider
@@ -24,7 +28,7 @@
         <meta-data android:name="torikomi.extension.id"      android:value="musicaldown" />
         <meta-data android:name="torikomi.extension.platform" android:value="tiktok" />
         <meta-data android:name="torikomi.extension.platformName" android:value="TikTok" />
-        <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
+        <meta-data android:name="torikomi.extension.version" android:value="1.0.1" />
         <meta-data android:name="torikomi.extension.downloader" android:value="MusicalDown" />
         <meta-data android:name="torikomi.extension.description" android:value="Downloader MusicalDown untuk konten TikTok (video, audio, dan gambar)." />
         <meta-data android:name="torikomi.extension.urlPlaceholder" android:value="https://www.tiktok.com/@username/video/1234567890" />
@@ -35,4 +39,5 @@
     </application>
 
 </manifest>
+
 

@@ -1,0 +1,1 @@
+-keep class com.torikomi.extension_soundloadmate.** { *; }

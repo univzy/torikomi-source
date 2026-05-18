@@ -26,6 +26,7 @@ val extensionIds = listOf(
     "snapsave_threads",
     "ytdown",
     "spotmate",
+    "soundloadmate",
     "whatsapp_status"
 )
 

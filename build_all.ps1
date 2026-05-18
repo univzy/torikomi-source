@@ -196,6 +196,7 @@ $AllExtensions = @(
     @{ id = "snapsave_threads"; lang = "multi"; version = "1.0.1" },
     @{ id = "ytdown"; lang = "multi"; version = "1.0.1" },
     @{ id = "spotmate"; lang = "multi"; version = "1.0.1" },
+    @{ id = "soundloadmate"; lang = "multi"; version = "1.0.1" },
     @{ id = "whatsapp_status"; lang = "local"; version = "1.0.1" }
 )
 

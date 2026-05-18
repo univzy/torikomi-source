@@ -58,7 +58,7 @@ class SpotmateExtension : IExtension {
         }
     }
 
-    // ── Session ───────────────────────────────────────────────────────────────
+    // Session
 
     private data class Session(val cookies: String, val csrfToken: String)
 
@@ -119,7 +119,7 @@ class SpotmateExtension : IExtension {
         return Session(cookieString, csrfToken)
     }
 
-    // ── HTTP helper ───────────────────────────────────────────────────────────
+    // HTTP helper  
 
     private fun postJson(url: String, body: String, session: Session): String {
         val req = Request.Builder()
@@ -142,7 +142,7 @@ class SpotmateExtension : IExtension {
         return client.newCall(req).execute().use { it.body?.string().orEmpty() }
     }
 
-    // ── Routing ───────────────────────────────────────────────────────────────
+    // Routing
 
     private fun scrapeSpotify(url: String, cfCookies: String?): String {
         val session = initSession(cfCookies)
@@ -157,10 +157,9 @@ class SpotmateExtension : IExtension {
         }
     }
 
-    // ── Single track ──────────────────────────────────────────────────────────
+    // Single track
 
     private fun scrapeTrack(url: String, session: Session): String {
-        // 1. Fetch track metadata via getTrackData
         val metaRaw = postJson(TRACK_DATA_URL, """{"spotify_url":"$url"}""", session)
         val metaJson = runCatching {
             JsonParser.parseString(metaRaw).asJsonObject
@@ -180,7 +179,6 @@ class SpotmateExtension : IExtension {
         val cleanUrl = metaJson.getAsJsonObject("external_urls")
             ?.get("spotify")?.asString?.takeIf { it.isNotBlank() } ?: url
 
-        // 2. Get download URL via convert
         val convertRaw = postJson(CONVERT_URL, """{"urls":"$cleanUrl"}""", session)
         val convertJson = runCatching {
             JsonParser.parseString(convertRaw).asJsonObject
@@ -232,7 +230,7 @@ class SpotmateExtension : IExtension {
         )
     }
 
-    // ── Playlist / Album ──────────────────────────────────────────────────────
+    // Playlist / Album
 
     private fun scrapePlaylistOrAlbum(url: String, session: Session): String {
         val raw = postJson(TRACK_DATA_URL, """{"spotify_url":"$url"}""", session)

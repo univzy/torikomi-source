@@ -156,7 +156,7 @@ class ThreadsExtension : IExtension {
         }.getOrNull()
     }
 
-    // ── Decryption (same algorithm as Instagram/Facebook) ────────────────────
+    // Decryption (same algorithm as Instagram/Facebook)
 
     private fun decryptResponse(encryptedData: String): String {
         val params = getEncodedParams(encryptedData)
@@ -221,7 +221,7 @@ class ThreadsExtension : IExtension {
             .replace("\\", "")
     }
 
-    // ── HTML parsing ─────────────────────────────────────────────────────────
+    // HTML parsing
 
     private fun parseThreadsHtml(htmlContent: String): String {
         val doc = Jsoup.parse(htmlContent)
@@ -379,7 +379,7 @@ class ThreadsExtension : IExtension {
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // Helpers
 
     private fun buildResultMap(
         downloadItems: List<Map<String, Any>>,

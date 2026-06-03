@@ -197,7 +197,8 @@ $AllExtensions = @(
     @{ id = "ytdown"; lang = "multi"; version = "1.0.1" },
     @{ id = "spotmate"; lang = "multi"; version = "1.0.1" },
     @{ id = "soundloadmate"; lang = "multi"; version = "1.0.1" },
-    @{ id = "whatsapp_status"; lang = "local"; version = "1.0.1" }
+    @{ id = "whatsapp_status"; lang = "local"; version = "1.0.1" },
+    @{ id = "bskysaver"; lang = "multi"; version = "1.0.0" }
 )
 
 # Filter by requested extensions

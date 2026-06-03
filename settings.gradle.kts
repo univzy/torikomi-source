@@ -27,7 +27,8 @@ val extensionIds = listOf(
     "ytdown",
     "spotmate",
     "soundloadmate",
-    "whatsapp_status"
+    "whatsapp_status",
+    "bskysaver"
 )
 
 extensionIds.forEach { id ->

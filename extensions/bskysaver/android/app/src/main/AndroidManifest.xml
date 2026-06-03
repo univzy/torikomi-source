@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:icon="@drawable/icon_bskysaver"
+        android:label="Torikomi: BskySaver">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="com.torikomi.extension.action.DISCOVERY" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name=".ExtensionProvider"
+            android:authorities="torikomi.extension.bskysaver"
+            android:exported="true" />
+
+        <meta-data android:name="torikomi.extension" android:value="true" />
+        <meta-data android:name="torikomi.extension.id" android:value="bskysaver" />
+        <meta-data android:name="torikomi.extension.platform" android:value="bluesky" />
+        <meta-data android:name="torikomi.extension.platformName" android:value="Bluesky" />
+        <meta-data android:name="torikomi.extension.version" android:value="1.0.0" />
+        <meta-data android:name="torikomi.extension.downloader" android:value="BskySaver" />
+        <meta-data android:name="torikomi.extension.description" android:value="Downloader BskySaver untuk unduh video, foto dan GIF Bluesky dengan cepat." />
+        <meta-data android:name="torikomi.extension.urlPlaceholder" android:value="https://bsky.app/profile/username.bsky.social/post/3l7n7hlp6bd2t" />
+        <meta-data android:name="torikomi.extension.lang" android:value="multi" />
+        <meta-data android:name="torikomi.extension.icon" android:value="bskysaver" />
+        <meta-data android:name="torikomi.extension.color" android:value="#1185FE" />
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+    </application>
+
+</manifest>

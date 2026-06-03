@@ -46,6 +46,8 @@ Torikomi App  ──►  content://torikomi.extension.<id>/scrape?url=...&cfCook
 | `snapsave_facebook`  | Facebook  | `com.torikomi.extension_snapsave_facebook`  | SnapSave            | `torikomi-multi.snapsave_facebook-v1.0.0.apk`  |
 | `ytdown`             | YouTube   | `com.torikomi.extension_ytdown`             | YTDown              | `torikomi-multi.ytdown-v1.0.0.apk`             |
 | `spotmate`           | Spotify   | `com.torikomi.extension_spotmate`           | Spotmate Downloader | `torikomi-multi.spotmate-v1.0.0.apk`           |
+| `whatsapp_status`     | WhatsApp  | `com.torikomi.extension_whatsapp_status`     | Use WhatsApp Directly | `torikomi-multi.whatsapp_status-v1.0.0.apk`     |
+| `bskysaver`          | Bluesky   | `com.torikomi.extension_bskysaver`          | BskySaver           | `torikomi-multi.bskysaver-v1.0.0.apk`          |
 
 ## Repository Layout
 
@@ -67,7 +69,9 @@ torikomi-source/
     ├── snapsave_threads/
     ├── snapsave_facebook/
     ├── ytdown/
-    └── spotmate/
+    ├── spotmate/
+    ├── whatsapp_status/
+    └── bskysaver/
 ```
 
 Each extension module follows this layout:
